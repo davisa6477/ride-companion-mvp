@@ -94,7 +94,7 @@ export default function MirrorPage({ t = (key) => key }) {
 
   return (
     <div className="flex justify-center">
-      <PageCard className="flex max-h-[calc(100vh-230px)] min-h-[360px] w-full max-w-[min(92vw,680px)] flex-col overflow-hidden md:max-h-[calc(100vh-250px)]">
+      <PageCard className="flex max-h-[calc(100vh-190px)] min-h-[460px] w-full max-w-[min(96vw,980px)] flex-col overflow-hidden md:max-h-[calc(100vh-210px)]">
         {/* ===== PAGE HEADER ===== */}
         <div className="flex shrink-0 items-center gap-3">
           <div className="rounded-2xl bg-slate-100 p-3">
@@ -114,7 +114,7 @@ export default function MirrorPage({ t = (key) => key }) {
 
         {/* ===== RESPONSIVE MIRROR PREVIEW ===== */}
         <div className="mt-4 flex min-h-0 flex-1 items-center justify-center">
-          <div className="relative h-full max-h-[min(44vh,430px)] w-full max-w-[min(76vw,430px)] overflow-hidden rounded-3xl bg-black shadow-inner">
+          <div className="relative h-full max-h-[min(62vh,640px)] w-full overflow-hidden rounded-3xl bg-black shadow-inner">
             <video
               ref={videoRef}
               autoPlay
@@ -125,8 +125,8 @@ export default function MirrorPage({ t = (key) => key }) {
 
             {!active && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-950 text-white">
-                <CameraOff size={44} className="text-white/40" />
-                <div className="text-center text-sm font-bold text-white/60">
+                <CameraOff size={52} className="text-white/40" />
+                <div className="text-center text-base font-bold text-white/60">
                   {tr("mirror_start", "Start Mirror")}
                 </div>
               </div>
