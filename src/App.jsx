@@ -30,6 +30,7 @@ import { defaultRequestCategories as starterRequestCategories } from "./data/def
 import { createTranslator } from "./data/translations.js";
 import { setPassengerLanguage } from "./services/rideSessionService.js";
 
+// ===== LOCAL STORAGE SERVICES =====
 import {
   loadDriverProfile,
   saveDriverProfile,
@@ -45,11 +46,9 @@ import {
   saveAdminPin,
 } from "./services/storageService.js";
 
-// ===== ADMIN DEFAULTS =====
 const DEFAULT_ADMIN_PIN = "1234";
 
 // ===== DEFAULT GUESTBOOK DATA =====
-// Used only when no saved guestbook entries exist in localStorage.
 const defaultGuestbookEntries = [
   {
     id: 101,
@@ -61,19 +60,17 @@ const defaultGuestbookEntries = [
 ];
 
 // ===== DRIVER PROFILE DEFAULTS =====
-// Saved driver profile data merges with these defaults in storageService.js.
-// Translation fields are manual admin-entered dynamic text translations.
 const defaultDriverProfile = {
   name: "Aaron",
   bio: "Welcome aboard. I hope you have a comfortable ride — feel free to check out local deals, trivia, weather, or send a quick ride request.",
   localTip: "Ask me about good local food spots if you're visiting Joplin.",
   photo: "",
 
+  // ===== MANUAL DYNAMIC TRANSLATIONS =====
   bioTranslations: {
     es: "",
     fr: "",
   },
-
   localTipTranslations: {
     es: "",
     fr: "",
@@ -82,9 +79,6 @@ const defaultDriverProfile = {
 
 export default function App() {
   // ===== ROUTE DETECTION =====
-  // /console opens the driver console.
-  // /admin opens the admin panel.
-  // Everything else opens the passenger tablet shell.
   const pathname = window.location.pathname;
   const isDriverConsole = pathname === "/console";
   const isAdminPage = pathname === "/admin";
@@ -93,62 +87,69 @@ export default function App() {
   const [page, setPage] = useState("home");
   const [appLanguage, setAppLanguage] = useState("en");
 
-  // ===== PERSISTED CONTENT STATE =====
+  // ===== GUESTBOOK STATE =====
   const [entries, setEntries] = useState(() =>
     loadGuestbookEntries(defaultGuestbookEntries)
   );
 
+  // ===== ADS STATE =====
   const [ads, setAds] = useState(() => loadAds(starterAds));
 
+  // ===== ADMIN PIN STATE =====
   const [adminPin, setAdminPin] = useState(() =>
     loadAdminPin(DEFAULT_ADMIN_PIN)
   );
 
+  // ===== REQUEST CATEGORIES STATE =====
   const [requestCategories, setRequestCategories] = useState(() =>
     loadRequestCategories(starterRequestCategories)
   );
 
+  // ===== DRIVER PROFILE STATE =====
   const [driverProfile, setDriverProfile] = useState(() =>
     loadDriverProfile(defaultDriverProfile)
   );
 
+  // ===== TIP OPTIONS STATE =====
   const [tipOptions, setTipOptions] = useState(() => loadTipOptions([]));
 
   // ===== TRANSLATION SETUP =====
-  // t(key) returns the selected-language text when available.
   const t = useMemo(() => createTranslator(appLanguage), [appLanguage]);
 
   // ===== DERIVED DISPLAY DATA =====
   const featuredAd = useMemo(() => ads.find((ad) => ad.active), [ads]);
 
-  // ===== LOCAL STORAGE PERSISTENCE =====
+  // ===== DRIVER PROFILE PERSISTENCE =====
   useEffect(() => {
     saveDriverProfile(driverProfile);
   }, [driverProfile]);
 
+  // ===== TIP OPTIONS PERSISTENCE =====
   useEffect(() => {
     saveTipOptions(tipOptions);
   }, [tipOptions]);
 
+  // ===== ADS PERSISTENCE =====
   useEffect(() => {
     saveAds(ads);
   }, [ads]);
 
+  // ===== GUESTBOOK PERSISTENCE =====
   useEffect(() => {
     saveGuestbookEntries(entries);
   }, [entries]);
 
+  // ===== REQUEST CATEGORIES PERSISTENCE =====
   useEffect(() => {
     saveRequestCategories(requestCategories);
   }, [requestCategories]);
 
+  // ===== ADMIN PIN PERSISTENCE =====
   useEffect(() => {
     saveAdminPin(adminPin);
   }, [adminPin]);
 
   // ===== PASSENGER SCREEN AUTO-RESET =====
-  // After inactivity, the passenger tablet returns to Home and English.
-  // Also syncs English back to Firestore so the driver console language card resets.
   useEffect(() => {
     if (isDriverConsole || isAdminPage) return undefined;
 
@@ -225,32 +226,16 @@ export default function App() {
   }
 
   // ===== PASSENGER NAVIGATION ITEMS =====
-  // Admin is intentionally excluded from passenger navigation.
   const navItems = [
-    {
-      id: "home",
-      labelKey: "nav_home",
-      fallbackLabel: "Home",
-      icon: Home,
-    },
-    {
-      id: "local",
-      labelKey: "nav_local",
-      fallbackLabel: "Local",
-      icon: MapPin,
-    },
+    { id: "home", labelKey: "nav_home", fallbackLabel: "Home", icon: Home },
+    { id: "local", labelKey: "nav_local", fallbackLabel: "Local", icon: MapPin },
     {
       id: "guestbook",
       labelKey: "nav_guestbook",
       fallbackLabel: "Guestbook",
       icon: MessageSquareHeart,
     },
-    {
-      id: "ads",
-      labelKey: "nav_deals",
-      fallbackLabel: "Deals",
-      icon: Store,
-    },
+    { id: "ads", labelKey: "nav_deals", fallbackLabel: "Deals", icon: Store },
     {
       id: "games",
       labelKey: "nav_games",
@@ -289,7 +274,6 @@ export default function App() {
     },
   ];
 
-  // ===== NAV LABEL TRANSLATION FALLBACK =====
   function navLabel(item) {
     const translated = t(item.labelKey);
     return translated === item.labelKey ? item.fallbackLabel : translated;
@@ -299,23 +283,20 @@ export default function App() {
   return (
     <main className="min-h-screen bg-slate-950 p-4 text-slate-950 md:p-6">
       <div className="mx-auto max-w-6xl">
-        {/* ===== PASSENGER HEADER / NAV ===== */}
-        <header className="mb-5 flex flex-col gap-4">
-          <div className="text-white">
-            <div className="text-sm font-bold uppercase tracking-[.25em] text-white/50">
-              Passenger Tablet
+        <header className="mb-4 flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-4 text-white">
+            <div className="text-2xl font-black leading-tight md:text-3xl">
+              Ride Companion MVP
             </div>
 
-            <div className="text-3xl font-black">
-              Ride Companion MVP
+            <div className="shrink-0 rounded-full bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[.18em] text-white/60">
+              Passenger
             </div>
           </div>
 
           <nav
             className="grid gap-2 rounded-3xl bg-white/10 p-2 backdrop-blur"
-            style={{
-              gridTemplateColumns: "repeat(auto-fit, minmax(90px, 1fr))",
-            }}
+            style={{ gridTemplateColumns: "repeat(auto-fit, minmax(90px, 1fr))" }}
           >
             {navItems.map((item) => (
               <NavButton
@@ -329,7 +310,6 @@ export default function App() {
           </nav>
         </header>
 
-        {/* ===== PASSENGER PAGE ROUTER ===== */}
         {page === "home" && (
           <HomePage
             setPage={setPage}
@@ -344,30 +324,17 @@ export default function App() {
         {page === "local" && <LocalPage t={t} />}
 
         {page === "guestbook" && (
-          <GuestbookPage
-            entries={entries}
-            setEntries={setEntries}
-            t={t}
-          />
+          <GuestbookPage entries={entries} setEntries={setEntries} t={t} />
         )}
 
-        {page === "ads" && (
-          <AdsPage
-            ads={ads}
-            appLanguage={appLanguage}
-            t={t}
-          />
-        )}
+        {page === "ads" && <AdsPage ads={ads} t={t} />}
 
         {page === "games" && <GamesPage t={t} />}
 
         {page === "weather" && <WeatherPage t={t} />}
 
         {page === "requests" && (
-          <RequestsPage
-            requestCategories={requestCategories}
-            t={t}
-          />
+          <RequestsPage requestCategories={requestCategories} t={t} />
         )}
 
         {page === "flights" && <FlightCheckerPage t={t} />}
