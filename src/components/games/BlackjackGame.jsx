@@ -150,18 +150,11 @@ function PlayerHandsFrame({
   hands,
   activeHandIndex,
   phase,
-  splitUsed,
-  onHit,
-  onStand,
-  onSplit,
   tr,
 }) {
   const hasSplit = hands.length > 1;
   const activeHand = hands[activeHandIndex];
   const canAct = phase === "playerTurn" && activeHand;
-  const canSplit = Boolean(
-    canAct && !splitUsed && hands.length === 1 && canSplitHand(activeHand.cards)
-  );
 
   return (
     <div className="flex h-full min-h-0 flex-col rounded-2xl bg-white/10 p-3">
@@ -243,34 +236,7 @@ function PlayerHandsFrame({
         )}
       </div>
 
-      {canAct && (
-        <div className="mt-2 grid shrink-0 grid-cols-3 gap-2">
-          <button
-            type="button"
-            onClick={onHit}
-            className="rounded-xl bg-emerald-300 px-3 py-2 text-sm font-black text-emerald-950 shadow"
-          >
-            {tr("blackjack_hit", "Hit")}
-          </button>
 
-          <button
-            type="button"
-            onClick={onStand}
-            className="rounded-xl bg-sky-300 px-3 py-2 text-sm font-black text-sky-950 shadow"
-          >
-            {tr("blackjack_stand", "Stand")}
-          </button>
-
-          <button
-            type="button"
-            onClick={onSplit}
-            disabled={!canSplit}
-            className="rounded-xl bg-amber-300 px-3 py-2 text-sm font-black text-amber-950 shadow disabled:opacity-40"
-          >
-            {tr("blackjack_split", "Split")}
-          </button>
-        </div>
-      )}
     </div>
   );
 }
@@ -627,7 +593,16 @@ export default function BlackjackGame({ t = (key) => key }) {
     );
   }
 
+  // ===== CONTROL AVAILABILITY =====
   const hideDealerFirstCard = phase === "playerTurn" && dealerHand.length > 0;
+  const dealLocked = phase === "playerTurn" || phase === "dealerTurn";
+  const canUsePlayerControls = phase === "playerTurn" && Boolean(activeHand);
+  const canUseSplit = Boolean(
+    canUsePlayerControls &&
+      !splitUsed &&
+      playerHands.length === 1 &&
+      canSplitHand(activeHand.cards)
+  );
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-900 via-emerald-950 to-slate-950 p-5 text-white">
@@ -703,23 +678,49 @@ export default function BlackjackGame({ t = (key) => key }) {
           hands={playerHands}
           activeHandIndex={activeHandIndex}
           phase={phase}
-          splitUsed={splitUsed}
-          onHit={hit}
-          onStand={stand}
-          onSplit={split}
           tr={tr}
         />
       </div>
 
-      {/* ===== DEAL CONTROL ===== */}
-      <div className="mt-3 flex shrink-0 flex-wrap items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={dealRound}
-          className="rounded-2xl bg-white px-5 py-3 text-base font-black text-slate-950 shadow-lg"
-        >
-          {tr("blackjack_deal", "Deal")}
-        </button>
+      {/* ===== TABLE CONTROLS ===== */}
+      <div className="mt-3 grid shrink-0 gap-2 md:grid-cols-[auto_1fr] md:items-center">
+        <div className="grid grid-cols-4 gap-2">
+          <button
+            type="button"
+            onClick={dealRound}
+            disabled={dealLocked}
+            className="rounded-2xl bg-white px-4 py-3 text-sm font-black text-slate-950 shadow-lg disabled:opacity-40"
+          >
+            {tr("blackjack_deal", "Deal")}
+          </button>
+
+          <button
+            type="button"
+            onClick={hit}
+            disabled={!canUsePlayerControls}
+            className="rounded-2xl bg-emerald-300 px-4 py-3 text-sm font-black text-emerald-950 shadow disabled:opacity-40"
+          >
+            {tr("blackjack_hit", "Hit")}
+          </button>
+
+          <button
+            type="button"
+            onClick={stand}
+            disabled={!canUsePlayerControls}
+            className="rounded-2xl bg-sky-300 px-4 py-3 text-sm font-black text-sky-950 shadow disabled:opacity-40"
+          >
+            {tr("blackjack_stand", "Stand")}
+          </button>
+
+          <button
+            type="button"
+            onClick={split}
+            disabled={!canUseSplit}
+            className="rounded-2xl bg-amber-300 px-4 py-3 text-sm font-black text-amber-950 shadow disabled:opacity-40"
+          >
+            {tr("blackjack_split", "Split")}
+          </button>
+        </div>
 
         <p className="text-xs text-white/50">
           {tr(
