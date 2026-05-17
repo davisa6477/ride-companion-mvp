@@ -94,7 +94,7 @@ export default function MirrorPage({ t = (key) => key }) {
 
   return (
     <div className="flex justify-center">
-      <PageCard className="flex max-h-[calc(100vh-190px)] min-h-[460px] w-full max-w-[min(96vw,980px)] flex-col overflow-hidden md:max-h-[calc(100vh-210px)]">
+      <PageCard className="flex h-[calc(100vh-135px)] min-h-[560px] w-full max-w-[min(96vw,980px)] flex-col overflow-hidden md:h-[calc(100vh-150px)]">
         {/* ===== PAGE HEADER ===== */}
         <div className="flex shrink-0 items-center gap-3">
           <div className="rounded-2xl bg-slate-100 p-3">
@@ -113,8 +113,8 @@ export default function MirrorPage({ t = (key) => key }) {
         </div>
 
         {/* ===== RESPONSIVE MIRROR PREVIEW ===== */}
-        <div className="mt-4 flex min-h-0 flex-1 items-center justify-center">
-          <div className="relative h-full max-h-[min(62vh,640px)] w-full overflow-hidden rounded-3xl bg-black shadow-inner">
+        <div className="mt-3 flex min-h-0 flex-1 items-center justify-center">
+          <div className="relative h-full w-full overflow-hidden rounded-3xl bg-black shadow-inner">
             <video
               ref={videoRef}
               autoPlay
@@ -145,7 +145,7 @@ export default function MirrorPage({ t = (key) => key }) {
         <button
           type="button"
           onClick={active ? stopMirror : startMirror}
-          className="mt-4 shrink-0 rounded-3xl bg-slate-950 p-3 text-lg font-black text-white"
+          className="mt-3 shrink-0 rounded-3xl bg-slate-950 p-3 text-lg font-black text-white"
         >
           {active
             ? tr("mirror_stop", "Stop Mirror")
