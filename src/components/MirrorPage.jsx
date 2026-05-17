@@ -94,7 +94,7 @@ export default function MirrorPage({ t = (key) => key }) {
 
   return (
     <div className="flex justify-center">
-      <PageCard className="flex h-[calc(100vh-135px)] min-h-[560px] w-full max-w-[min(96vw,980px)] flex-col overflow-hidden md:h-[calc(100vh-150px)]">
+      <PageCard className="flex h-[calc(100vh-155px)] min-h-[520px] w-full max-w-[min(96vw,980px)] flex-col overflow-hidden md:h-[calc(100vh-170px)]">
         {/* ===== PAGE HEADER ===== */}
         <div className="flex shrink-0 items-center gap-3">
           <div className="rounded-2xl bg-slate-100 p-3">
