@@ -14,31 +14,18 @@ import TranslationPage from "./components/pages/TranslationPage.jsx";
 import AdminPage from "./components/admin/AdminPage.jsx";
 import DriverConsolePage from "./components/console/DriverConsolePage.jsx";
 
-import { starterAds } from "./data/starterAds.js";
-import { defaultRequestCategories as starterRequestCategories } from "./data/defaultRequests.js";
 import { createTranslator } from "./data/translations.js";
 import { setPassengerLanguage } from "./services/rideSessionService.js";
+// ===== ADMIN CONTENT SERVICE =====
 import {
-  DEFAULT_ADMIN_PIN,
-  defaultGuestbookEntries,
-  defaultDriverProfile,
-} from "./config/defaultContent.js";
-
-// ===== LOCAL STORAGE SERVICES =====
-import {
-  loadDriverProfile,
+  loadAdminContent,
   saveDriverProfile,
-  loadTipOptions,
   saveTipOptions,
-  loadAds,
   saveAds,
-  loadGuestbookEntries,
   saveGuestbookEntries,
-  loadRequestCategories,
   saveRequestCategories,
-  loadAdminPin,
   saveAdminPin,
-} from "./services/storageService.js";
+} from "./services/adminContentService.js";
 
 export default function App() {
   // ===== ROUTE DETECTION =====
@@ -46,35 +33,36 @@ export default function App() {
   const isDriverConsole = pathname === "/console";
   const isAdminPage = pathname === "/admin";
 
+  // ===== ADMIN-MANAGED CONTENT INITIAL LOAD =====
+  const initialAdminContent = useMemo(() => loadAdminContent(), []);
+
   // ===== PASSENGER UI STATE =====
   const [page, setPage] = useState("home");
   const [appLanguage, setAppLanguage] = useState("en");
 
   // ===== GUESTBOOK STATE =====
-  const [entries, setEntries] = useState(() =>
-    loadGuestbookEntries(defaultGuestbookEntries)
-  );
+  const [entries, setEntries] = useState(() => initialAdminContent.entries);
 
   // ===== ADS STATE =====
-  const [ads, setAds] = useState(() => loadAds(starterAds));
+  const [ads, setAds] = useState(() => initialAdminContent.ads);
 
   // ===== ADMIN PIN STATE =====
-  const [adminPin, setAdminPin] = useState(() =>
-    loadAdminPin(DEFAULT_ADMIN_PIN)
-  );
+  const [adminPin, setAdminPin] = useState(() => initialAdminContent.adminPin);
 
   // ===== REQUEST CATEGORIES STATE =====
-  const [requestCategories, setRequestCategories] = useState(() =>
-    loadRequestCategories(starterRequestCategories)
+  const [requestCategories, setRequestCategories] = useState(
+    () => initialAdminContent.requestCategories
   );
 
   // ===== DRIVER PROFILE STATE =====
-  const [driverProfile, setDriverProfile] = useState(() =>
-    loadDriverProfile(defaultDriverProfile)
+  const [driverProfile, setDriverProfile] = useState(
+    () => initialAdminContent.driverProfile
   );
 
   // ===== TIP OPTIONS STATE =====
-  const [tipOptions, setTipOptions] = useState(() => loadTipOptions([]));
+  const [tipOptions, setTipOptions] = useState(
+    () => initialAdminContent.tipOptions
+  );
 
   // ===== TRANSLATION SETUP =====
   const t = useMemo(() => createTranslator(appLanguage), [appLanguage]);
