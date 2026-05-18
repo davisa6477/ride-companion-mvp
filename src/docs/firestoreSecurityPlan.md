@@ -154,3 +154,17 @@ src/docs/firestoreRulesPhase16Draft.rules
 ```
 
 Do not publish the strict draft until Firebase Auth/admin claims or an equivalent admin identity model is ready. The placeholder `isAdmin()` currently returns false.
+
+
+## Phase 17B Prep Status
+
+Passenger Guestbook submission now writes a single pending document through `createSharedGuestbookEntry()` instead of rewriting the whole guestbook array. This supports rules where passengers may create pending entries, but only Admin may approve/edit/delete them.
+
+A rules draft has been added at:
+
+```txt
+src/firestore.rules
+src/docs/firestoreRulesPhase17BDraft.rules
+```
+
+For the single-admin beta, the draft treats any signed-in Firebase Auth user as Admin. Before broader release, replace `isAdmin()` with a custom-claims check.

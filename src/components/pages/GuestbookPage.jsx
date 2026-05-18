@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { MapPin } from "lucide-react";
 import PageCard from "../layout/PageCard.jsx";
+import { createSharedGuestbookEntry } from "../../services/firestoreGuestbookService.js";
 
 export default function GuestbookPage({
   entries = [],
@@ -11,6 +12,8 @@ export default function GuestbookPage({
   const [name, setName] = useState("");
   const [city, setCity] = useState("");
   const [message, setMessage] = useState("");
+  const [submitStatus, setSubmitStatus] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   // ===== STATIC TRANSLATION HELPER =====
   function tr(key, fallback) {
@@ -20,28 +23,46 @@ export default function GuestbookPage({
 
   // ===== SUBMIT GUESTBOOK ENTRY =====
   // New entries are saved as unapproved so the driver can moderate them in /admin.
-  function submitEntry(e) {
+  async function submitEntry(e) {
     e.preventDefault();
 
-    if (!name.trim() || !message.trim()) return;
+    if (!name.trim() || !message.trim() || submitting) return;
 
     const createdAtMs = Date.now();
 
-    setEntries([
-      {
-        id: String(createdAtMs),
-        createdAtMs,
-        name: name.trim(),
-        city: city.trim(),
-        message: message.trim(),
-        approved: false,
-      },
-      ...entries,
-    ]);
+    const pendingEntry = {
+      id: String(createdAtMs),
+      createdAtMs,
+      name: name.trim(),
+      city: city.trim(),
+      message: message.trim(),
+      approved: false,
+    };
 
-    setName("");
-    setCity("");
-    setMessage("");
+    setSubmitting(true);
+    setSubmitStatus("");
+
+    // Optimistic local update keeps the passenger screen responsive. Firestore
+    // listener will reconcile the final shared entry list.
+    setEntries([pendingEntry, ...entries]);
+
+    try {
+      await createSharedGuestbookEntry(pendingEntry);
+
+      setName("");
+      setCity("");
+      setMessage("");
+      setSubmitStatus(
+        tr("guestbook_submit_success", "Thanks! Your note is waiting for approval.")
+      );
+    } catch (error) {
+      console.error("Failed to submit guestbook entry:", error);
+      setSubmitStatus(
+        tr("guestbook_submit_error", "Could not submit the note. Please try again.")
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   // ===== APPROVED ENTRIES ONLY =====
@@ -97,13 +118,19 @@ export default function GuestbookPage({
 
           <button
             type="submit"
-            className="rounded-2xl bg-slate-950 p-4 text-lg font-black text-white shadow-lg"
+            disabled={submitting}
+            className="rounded-2xl bg-slate-950 p-4 text-lg font-black text-white shadow-lg disabled:opacity-50"
           >
-            {tr(
-              "guestbook_submit",
-              "Submit for Approval"
-            )}
+            {submitting
+              ? tr("guestbook_submitting", "Submitting...")
+              : tr("guestbook_submit", "Submit for Approval")}
           </button>
+
+          {submitStatus && (
+            <div className="rounded-2xl bg-slate-100 p-3 text-sm font-bold text-slate-700">
+              {submitStatus}
+            </div>
+          )}
         </form>
       </PageCard>
 
