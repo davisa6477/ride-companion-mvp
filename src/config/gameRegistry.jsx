@@ -27,7 +27,7 @@ export function getDefaultGameModuleSettings() {
   }));
 }
 
-export function applyGameModuleSettings(settings = []) {
+export function getConfiguredGameRegistry(settings = []) {
   const settingsById = new Map(
     (Array.isArray(settings) ? settings : []).map((setting) => [
       setting.id,
@@ -50,8 +50,13 @@ export function applyGameModuleSettings(settings = []) {
             : (index + 1) * 10,
       };
     })
-    .filter((game) => game.enabled !== false)
     .sort((a, b) => (a.order || 999) - (b.order || 999));
+}
+
+export function applyGameModuleSettings(settings = []) {
+  return getConfiguredGameRegistry(settings).filter(
+    (game) => game.enabled !== false
+  );
 }
 
 export const gameRegistry = applyGameModuleSettings(getDefaultGameModuleSettings());

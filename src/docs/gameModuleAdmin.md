@@ -9,18 +9,25 @@ Admin can manage installed game modules from:
 Supported from Admin:
 
 ```txt
-Activate/deactivate installed modules
-Hide/show games from passenger Games nav
+Show/hide installed modules
 Reorder games
 View translation key checklist
-Restore default module order/activation
+Restore default module order/visibility
 ```
 
-Important limitation:
+## Display behavior
 
-```txt
-Adding a brand-new game still requires a code deployment.
-```
+The Admin list is sorted using the same configured order that the passenger Games page uses. Hidden games stay visible in Admin so they can be re-enabled, but they are removed from the passenger Games nav.
+
+The Admin row styling is intentionally neutral now. Visibility changes should not visually resize or radically change the row; the status text and button label show whether the game is active/hidden.
+
+## Passenger Games nav
+
+The passenger Games nav card uses the same static available page-frame height as the game card. If the list gets too long, the nav list scrolls inside the fixed card instead of growing the page.
+
+## Important limitation
+
+Truly adding a brand-new game still requires a code deployment.
 
 A new game needs:
 

@@ -9,7 +9,10 @@ import { ArrowDown, ArrowUp, Link, Lock, Plus, Trash2 } from "lucide-react";
 import PageCard from "../layout/PageCard.jsx";
 import { securityStatus } from "../../config/securityStatus.js";
 import { DEVICE_TYPES } from "../../config/deviceTypes.js";
-import { baseGameRegistry } from "../../config/gameRegistry.jsx";
+import {
+  baseGameRegistry,
+  getConfiguredGameRegistry,
+} from "../../config/gameRegistry.jsx";
 import { normalizeGameModuleSettings } from "../../services/gameModuleSettingsService.js";
 import {
   approvePairingCode,
@@ -539,6 +542,12 @@ export default function AdminPage({
   }
 
   // ===== GAME MODULE FUNCTIONS =====
+  function getConfiguredAdminGames() {
+    return getConfiguredGameRegistry(
+      normalizeGameModuleSettings(gameModuleSettings)
+    );
+  }
+
   function getGameSetting(gameId) {
     return normalizeGameModuleSettings(gameModuleSettings).find(
       (setting) => setting.id === gameId
@@ -563,28 +572,32 @@ export default function AdminPage({
   }
 
   function moveGameModule(gameId, direction) {
-    const normalizedSettings = normalizeGameModuleSettings(gameModuleSettings)
-      .sort((a, b) => (a.order || 999) - (b.order || 999));
+    const configuredGames = getConfiguredAdminGames();
+    const normalizedSettings = normalizeGameModuleSettings(gameModuleSettings);
 
-    const index = normalizedSettings.findIndex((setting) => setting.id === gameId);
+    const index = configuredGames.findIndex((game) => game.id === gameId);
     const swapIndex = direction === "up" ? index - 1 : index + 1;
 
-    if (index < 0 || swapIndex < 0 || swapIndex >= normalizedSettings.length) {
+    if (index < 0 || swapIndex < 0 || swapIndex >= configuredGames.length) {
       return;
     }
 
-    const nextSettings = [...normalizedSettings];
-    const currentOrder = nextSettings[index].order;
-    nextSettings[index] = {
-      ...nextSettings[index],
-      order: nextSettings[swapIndex].order,
-    };
-    nextSettings[swapIndex] = {
-      ...nextSettings[swapIndex],
-      order: currentOrder,
-    };
+    const currentGame = configuredGames[index];
+    const swapGame = configuredGames[swapIndex];
 
-    setGameModuleSettings(nextSettings);
+    setGameModuleSettings(
+      normalizedSettings.map((setting) => {
+        if (setting.id === currentGame.id) {
+          return { ...setting, order: swapGame.order };
+        }
+
+        if (setting.id === swapGame.id) {
+          return { ...setting, order: currentGame.order };
+        }
+
+        return setting;
+      })
+    );
   }
 
   function restoreDefaultGameModules() {
@@ -1720,7 +1733,7 @@ export default function AdminPage({
                   Game Modules
                 </h2>
                 <p className="mt-2 text-sm text-slate-500">
-                  Activate, deactivate, remove from the passenger Games list, and reorder installed game modules.
+                  Show, hide, and reorder installed game modules without changing game card sizing.
                 </p>
               </div>
 
@@ -1734,18 +1747,14 @@ export default function AdminPage({
             </div>
 
             <div className="mt-5 grid gap-3">
-              {baseGameRegistry.map((game) => {
+              {getConfiguredAdminGames().map((game, index) => {
                 const setting = getGameSetting(game.id);
                 const enabled = setting?.enabled ?? game.enabled !== false;
 
                 return (
                   <div
                     key={game.id}
-                    className={`rounded-2xl border p-4 ${
-                      enabled
-                        ? "border-emerald-200 bg-emerald-50"
-                        : "border-slate-200 bg-slate-50"
-                    }`}
+                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
                   >
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                       <div>
@@ -1756,7 +1765,7 @@ export default function AdminPage({
                           {game.fallbackDescription}
                         </div>
                         <div className="mt-1 text-xs font-bold text-slate-400">
-                          Module ID: {game.id} · Translation keys: {(game.translationKeys || []).length}
+                          Order: {index + 1} · Module ID: {game.id} · Status: {enabled ? "Active" : "Hidden"} · Translation keys: {(game.translationKeys || []).length}
                         </div>
                       </div>
 
@@ -1764,7 +1773,8 @@ export default function AdminPage({
                         <button
                           type="button"
                           onClick={() => moveGameModule(game.id, "up")}
-                          className="rounded-xl bg-white px-3 py-2 text-sm font-black text-slate-700"
+                          disabled={index === 0}
+                          className="rounded-xl bg-white px-3 py-2 text-sm font-black text-slate-700 disabled:opacity-40"
                           title="Move up"
                         >
                           <ArrowUp size={16} />
@@ -1773,7 +1783,8 @@ export default function AdminPage({
                         <button
                           type="button"
                           onClick={() => moveGameModule(game.id, "down")}
-                          className="rounded-xl bg-white px-3 py-2 text-sm font-black text-slate-700"
+                          disabled={index === getConfiguredAdminGames().length - 1}
+                          className="rounded-xl bg-white px-3 py-2 text-sm font-black text-slate-700 disabled:opacity-40"
                           title="Move down"
                         >
                           <ArrowDown size={16} />
@@ -1788,7 +1799,7 @@ export default function AdminPage({
                               : "bg-emerald-600 text-white hover:bg-emerald-700"
                           }`}
                         >
-                          {enabled ? "Deactivate" : "Activate"}
+                          {enabled ? "Hide from Games" : "Show in Games"}
                         </button>
                       </div>
                     </div>

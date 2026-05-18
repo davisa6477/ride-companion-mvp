@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Gamepad2 } from "lucide-react";
 
 import PageCard from "../layout/PageCard.jsx";
@@ -31,10 +31,16 @@ export default function GamesPage({ t = (key) => key, gameModuleSettings = [] })
 
   const SelectedGame = selectedGameConfig?.Component;
 
+  useEffect(() => {
+    if (games.length > 0 && !games.some((game) => game.id === selectedGame)) {
+      setSelectedGame(games[0].id);
+    }
+  }, [games, selectedGame]);
+
   return (
     <div className={`grid gap-5 lg:grid-cols-[240px_1fr] ${PAGE_FRAME_CLASS}`}>
-      <aside>
-        <PageCard className="flex h-full min-h-0 flex-col overflow-hidden lg:sticky lg:top-4">
+      <aside className="h-full min-h-0">
+        <PageCard className="flex h-full min-h-0 flex-col overflow-hidden">
           <div className="flex items-center gap-3">
             <div className="rounded-2xl bg-slate-100 p-3">
               <Gamepad2 />
@@ -50,7 +56,7 @@ export default function GamesPage({ t = (key) => key, gameModuleSettings = [] })
             </div>
           </div>
 
-          <div className="mt-4 grid min-h-0 flex-1 content-start gap-2 overflow-hidden">
+          <div className="mt-4 grid min-h-0 flex-1 content-start gap-2 overflow-y-auto pr-1">
             {games.map((game) => {
               const active = selectedGame === game.id;
 
