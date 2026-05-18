@@ -140,3 +140,17 @@ adminConfig/requestCategories
 ```
 
 The remaining adminConfig/content snapshot now primarily holds MVP admin PIN state until real backend auth replaces it.
+
+
+## Phase 16 Security Prep Status
+
+A visible Admin security notice has been added so beta users understand the current local PIN is only a browser UI gate.
+
+A copy/paste Firestore rules draft has been added at:
+
+```txt
+src/firestore.rules
+src/docs/firestoreRulesPhase16Draft.rules
+```
+
+Do not publish the strict draft until Firebase Auth/admin claims or an equivalent admin identity model is ready. The placeholder `isAdmin()` currently returns false.

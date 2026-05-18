@@ -1,0 +1,89 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===== PHASE 16 SECURITY DRAFT =====
+    // This draft is intentionally conservative for production planning.
+    // The app currently uses an MVP local PIN gate. That PIN does NOT protect Firestore.
+    // Before production, replace placeholder isAdmin() with Firebase Auth custom claims
+    // or another verified admin identity model.
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      // Future production option:
+      // return request.auth != null && request.auth.token.admin == true;
+      return false;
+    }
+
+    // ===== RIDE SESSION SYNC =====
+    match /rideSessions/{sessionId} {
+      allow read: if true;
+
+      // Passenger language sync currently writes here.
+      // For production, scope this to a generated ride/session token or authenticated device.
+      allow create, update: if true;
+
+      match /requests/{requestId} {
+        allow read: if true;
+
+        // Passenger creates requests.
+        // Production should validate fields and force status == "pending".
+        allow create: if true;
+
+        // Driver console updates request status.
+        // Production should restrict this to admin/driver auth.
+        allow update: if isAdmin();
+
+        allow delete: if isAdmin();
+      }
+    }
+
+    // ===== ADMIN CONFIG DOCUMENTS =====
+    match /adminConfig/{docId} {
+      // Passenger tablet needs to read profile/settings/tips/request categories.
+      allow read: if true;
+
+      // Production should require verified Admin auth.
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ===== ADS / LOCAL DEALS =====
+    match /ads/{adId} {
+      // Passenger tablet needs to read deals.
+      allow read: if true;
+
+      // Production should require verified Admin auth.
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ===== GUESTBOOK ENTRIES =====
+    match /guestbookEntries/{entryId} {
+      // MVP allows read so Admin can moderate and passenger can see approved entries.
+      // Production may split approved/public reads from pending/admin reads.
+      allow read: if true;
+
+      // Production option:
+      // allow create: if request.resource.data.approved == false
+      //   && request.resource.data.keys().hasOnly([
+      //     "id", "name", "city", "message", "approved", "createdAtMs", "createdAt", "updatedAt"
+      //   ]);
+
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ===== LEGACY GUESTBOOK CONTAINER =====
+    match /guestbook/{docId} {
+      // Legacy Phase 11 fallback. Remove once data migration is confirmed.
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ===== DEFAULT DENY =====
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

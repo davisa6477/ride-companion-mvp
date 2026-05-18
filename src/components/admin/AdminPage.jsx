@@ -7,6 +7,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Lock, Plus, Trash2 } from "lucide-react";
 import PageCard from "../layout/PageCard.jsx";
+import { securityStatus } from "../../config/securityStatus.js";
 import {
   formatLockoutTime,
   getAdminSessionRemainingMs,
