@@ -11,6 +11,9 @@ const guestbook = {
     guestbook_submit: "Submit for Approval",
     guestbook_wall: "Ride Wall",
     guestbook_empty: "No approved notes yet. Be the first!",
+    guestbook_submitting: "Submitting...",
+    guestbook_submit_success: "Thanks! Your note is waiting for approval.",
+    guestbook_submit_error: "Could not submit the note. Please try again.",
   },
 
   es: {
@@ -22,6 +25,9 @@ const guestbook = {
     guestbook_submit: "Enviar para aprobación",
     guestbook_wall: "Muro del viaje",
     guestbook_empty: "Todavía no hay notas aprobadas. ¡Sea el primero!",
+    guestbook_submitting: "Enviando...",
+    guestbook_submit_success: "¡Gracias! Su nota está esperando aprobación.",
+    guestbook_submit_error: "No se pudo enviar la nota. Inténtelo de nuevo.",
   },
 
   fr: {
@@ -33,6 +39,9 @@ const guestbook = {
     guestbook_submit: "Soumettre pour approbation",
     guestbook_wall: "Mur du trajet",
     guestbook_empty: "Aucun message approuvé pour le moment. Soyez le premier !",
+    guestbook_submitting: "Envoi...",
+    guestbook_submit_success: "Merci ! Votre message attend l’approbation.",
+    guestbook_submit_error: "Impossible d’envoyer le message. Veuillez réessayer.",
   },
 
   de: {
@@ -44,6 +53,9 @@ const guestbook = {
     guestbook_submit: "Zur Freigabe senden",
     guestbook_wall: "Fahrt-Pinnwand",
     guestbook_empty: "Noch keine freigegebenen Nachrichten. Seien Sie der Erste!",
+    guestbook_submitting: "Wird gesendet...",
+    guestbook_submit_success: "Danke! Ihre Nachricht wartet auf Freigabe.",
+    guestbook_submit_error: "Die Nachricht konnte nicht gesendet werden. Bitte versuchen Sie es erneut.",
   },
 
   pt: {
@@ -55,6 +67,9 @@ const guestbook = {
     guestbook_submit: "Enviar para aprovação",
     guestbook_wall: "Mural da viagem",
     guestbook_empty: "Ainda não há mensagens aprovadas. Seja o primeiro!",
+    guestbook_submitting: "Enviando...",
+    guestbook_submit_success: "Obrigado! Sua mensagem aguarda aprovação.",
+    guestbook_submit_error: "Não foi possível enviar a mensagem. Tente novamente.",
   },
 
   zh: {
@@ -66,6 +81,9 @@ const guestbook = {
     guestbook_submit: "提交审核",
     guestbook_wall: "乘车留言墙",
     guestbook_empty: "还没有已批准的留言。快来成为第一个！",
+    guestbook_submitting: "正在提交...",
+    guestbook_submit_success: "谢谢！您的留言正在等待批准。",
+    guestbook_submit_error: "无法提交留言。请重试。",
   },
 
   ar: {
@@ -77,6 +95,9 @@ const guestbook = {
     guestbook_submit: "إرسال للموافقة",
     guestbook_wall: "حائط الرحلة",
     guestbook_empty: "لا توجد رسائل معتمدة بعد. كن الأول!",
+    guestbook_submitting: "جارٍ الإرسال...",
+    guestbook_submit_success: "شكرًا! رسالتك بانتظار الموافقة.",
+    guestbook_submit_error: "تعذر إرسال الرسالة. يرجى المحاولة مرة أخرى.",
   },
 
   vi: {
@@ -88,6 +109,9 @@ const guestbook = {
     guestbook_submit: "Gửi để phê duyệt",
     guestbook_wall: "Tường chuyến đi",
     guestbook_empty: "Chưa có lời nhắn nào được duyệt. Hãy là người đầu tiên!",
+    guestbook_submitting: "Đang gửi...",
+    guestbook_submit_success: "Cảm ơn! Lời nhắn của bạn đang chờ phê duyệt.",
+    guestbook_submit_error: "Không thể gửi lời nhắn. Vui lòng thử lại.",
   },
 
   ko: {
@@ -99,6 +123,9 @@ const guestbook = {
     guestbook_submit: "승인 요청하기",
     guestbook_wall: "승차 메모판",
     guestbook_empty: "아직 승인된 메모가 없습니다. 첫 번째로 남겨보세요!",
+    guestbook_submitting: "제출 중...",
+    guestbook_submit_success: "감사합니다! 메모가 승인 대기 중입니다.",
+    guestbook_submit_error: "메모를 제출할 수 없습니다. 다시 시도해 주세요.",
   },
 
   ja: {
@@ -110,6 +137,9 @@ const guestbook = {
     guestbook_submit: "承認のため送信",
     guestbook_wall: "ライドウォール",
     guestbook_empty: "承認済みのメッセージはまだありません。最初に投稿しましょう！",
+    guestbook_submitting: "送信中...",
+    guestbook_submit_success: "ありがとうございます！メッセージは承認待ちです。",
+    guestbook_submit_error: "メッセージを送信できませんでした。もう一度お試しください。",
   },
 
   hi: {
@@ -121,6 +151,9 @@ const guestbook = {
     guestbook_submit: "स्वीकृति के लिए भेजें",
     guestbook_wall: "राइड वॉल",
     guestbook_empty: "अभी कोई स्वीकृत नोट नहीं है। पहले बनें!",
+    guestbook_submitting: "भेजा जा रहा है...",
+    guestbook_submit_success: "धन्यवाद! आपका नोट स्वीकृति की प्रतीक्षा कर रहा है।",
+    guestbook_submit_error: "नोट भेजा नहीं जा सका। कृपया फिर कोशिश करें।",
   },
 
 };
