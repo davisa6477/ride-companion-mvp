@@ -18,7 +18,10 @@ import DeveloperPortalPage from "./components/developer/DeveloperPortalPage.jsx"
 import DriverConsolePage from "./components/console/DriverConsolePage.jsx";
 
 import { createTranslator } from "./data/translations.js";
-import { setPassengerLanguage } from "./services/rideSessionService.js";
+import {
+  setPassengerLanguage,
+  setPassengerPageStatus,
+} from "./services/rideSessionService.js";
 import {
   loadLocalPairedDevice,
   listenToLocalPairedDeviceValidation,
@@ -661,6 +664,23 @@ export default function App() {
     sharedStateReady,
     canWriteFullAdminContent,
   ]);
+
+  // ===== PASSENGER PAGE STATUS SYNC =====
+  useEffect(() => {
+    if (!isPassengerPage || !deviceIsPaired || shouldWaitForPairingValidation) {
+      return;
+    }
+
+    const currentNavItem = passengerNavItems.find((item) => item.id === page);
+    const label = currentNavItem?.fallbackLabel || page;
+
+    setPassengerPageStatus({
+      page,
+      label,
+    }).catch((error) => {
+      console.error("Failed to sync passenger page status:", error);
+    });
+  }, [page, isPassengerPage, deviceIsPaired, shouldWaitForPairingValidation]);
 
   // ===== PASSENGER SCREEN AUTO-RESET =====
   useEffect(() => {

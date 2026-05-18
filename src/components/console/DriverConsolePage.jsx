@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bell, CheckCircle2, Clock3, Trash2, User } from "lucide-react";
+import { Bell, CheckCircle2, Clock3, Monitor, Trash2, User } from "lucide-react";
 import {
   listenToPassengerRequests,
+  listenToRideSession,
   updatePassengerRequestStatus,
 } from "../../services/rideSessionService.js";
 import DriverTranslationCard from "./DriverTranslationCard.jsx";
@@ -25,11 +26,21 @@ function formatRequestTime(timestamp) {
   });
 }
 
+function formatPageUpdatedTime(timestamp) {
+  if (!timestamp?.toDate) return "Waiting for tablet...";
+
+  return timestamp.toDate().toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export default function DriverConsolePage() {
   // ===== LIVE REQUEST STATE =====
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [consoleError, setConsoleError] = useState("");
+  const [rideSession, setRideSession] = useState({});
 
   // ===== PASSENGER REQUEST LISTENER =====
   // Keeps the driver console synced with Firestore passenger requests.
@@ -38,6 +49,16 @@ export default function DriverConsolePage() {
       setRequests(liveRequests);
       setLoading(false);
       setConsoleError("");
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // ===== RIDE SESSION LISTENER =====
+  // Tracks passenger tablet page/status metadata for the driver.
+  useEffect(() => {
+    const unsubscribe = listenToRideSession((session) => {
+      setRideSession(session || {});
     });
 
     return () => unsubscribe();
@@ -141,6 +162,30 @@ export default function DriverConsolePage() {
 
               <div className="text-sm font-black text-emerald-300">
                 Live
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-3 rounded-2xl bg-white/10 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="rounded-xl bg-white/10 p-2">
+                  <Monitor size={18} className="text-cyan-200" />
+                </div>
+
+                <div className="min-w-0">
+                  <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">
+                    Tablet Page
+                  </div>
+
+                  <div className="truncate text-lg font-black text-cyan-200">
+                    {rideSession.passengerPageLabel || "Waiting for tablet"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="shrink-0 text-right text-[10px] font-bold uppercase tracking-wide text-white/40">
+                {formatPageUpdatedTime(rideSession.passengerPageUpdatedAt)}
               </div>
             </div>
           </div>
@@ -257,9 +302,11 @@ export default function DriverConsolePage() {
           </div>
 
           <div className="mt-4 grid gap-2 text-sm">
-            <div className="flex items-center justify-between rounded-2xl bg-white/5 p-3">
+            <div className="flex items-center justify-between gap-3 rounded-2xl bg-white/5 p-3">
               <span>Passenger Tablet</span>
-              <span className="font-black text-emerald-300">Connected</span>
+              <span className="min-w-0 truncate text-right font-black text-emerald-300">
+                {rideSession.passengerPageLabel || "Connected"}
+              </span>
             </div>
 
             <div className="flex items-center justify-between rounded-2xl bg-white/5 p-3">

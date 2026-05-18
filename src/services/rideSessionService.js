@@ -88,6 +88,23 @@ export function listenToPassengerRequests(callback) {
   });
 }
 
+// ===== PASSENGER PAGE STATUS SYNC =====
+// Called from the passenger tablet whenever the visible passenger page changes.
+// The driver console listens to this value through listenToRideSession().
+export async function setPassengerPageStatus(pageStatus) {
+  return setDoc(
+    getRideSessionRef(),
+    {
+      passengerPage: pageStatus?.page || "home",
+      passengerPageLabel: pageStatus?.label || "Home",
+      passengerPageUpdatedAt: serverTimestamp(),
+      passengerPageUpdatedByDevice: getLocalDeviceMetadata(),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+}
+
 // ===== PASSENGER LANGUAGE SYNC =====
 // Called from the passenger Translation page.
 // The driver console listens to this value through listenToRideSession().
