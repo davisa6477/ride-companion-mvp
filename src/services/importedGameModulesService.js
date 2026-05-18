@@ -72,7 +72,13 @@ export function normalizeImportedGameModuleManifest(rawManifest) {
       ? manifest.translationKeys.map((key) => String(key)).filter(Boolean)
       : [],
     developerNotes: String(manifest.developerNotes || "").trim(),
-    importedAtMs: Date.now(),
+    developerArchived: Boolean(manifest.developerArchived),
+    developerArchivedAtMs:
+      typeof manifest.developerArchivedAtMs === "number"
+        ? manifest.developerArchivedAtMs
+        : null,
+    importedAtMs:
+      typeof manifest.importedAtMs === "number" ? manifest.importedAtMs : Date.now(),
   };
 }
 

@@ -34,6 +34,7 @@ export default function DeveloperPortalPage({
   );
   const [stagedModules, setStagedModules] = useState([]);
   const [selectedTestId, setSelectedTestId] = useState("");
+  const [showArchivedModules, setShowArchivedModules] = useState(false);
   const [message, setMessage] = useState("");
 
   const developerSession = getDeveloperSession();
@@ -46,6 +47,14 @@ export default function DeveloperPortalPage({
   const TestComponent = selectedTestModule
     ? getImportableComponent(selectedTestModule.componentKey)
     : null;
+
+  const visibleImportedModules = importedGameModules.filter(
+    (module) => !module.developerArchived
+  );
+
+  const archivedImportedModules = importedGameModules.filter(
+    (module) => module.developerArchived
+  );
 
   function loginDeveloper(event) {
     event.preventDefault();
@@ -117,9 +126,17 @@ export default function DeveloperPortalPage({
       (item) => item.id === module.id
     );
 
+    const publishModule = {
+      ...module,
+      developerArchived: false,
+      developerArchivedAtMs: null,
+    };
+
     const nextImportedModules = existingImported
-      ? importedGameModules.map((item) => (item.id === module.id ? module : item))
-      : [...importedGameModules, module];
+      ? importedGameModules.map((item) =>
+          item.id === module.id ? publishModule : item
+        )
+      : [...importedGameModules, publishModule];
 
     setImportedGameModules(nextImportedModules);
 
@@ -131,9 +148,41 @@ export default function DeveloperPortalPage({
 
     setMessage(
       existingImported
-        ? "Admin catalog module updated."
+        ? "Admin catalog module updated and restored to active developer view."
         : "Module published to Admin catalog."
     );
+  }
+
+  function archiveDeveloperModule(moduleId) {
+    const nextImportedModules = importedGameModules.map((module) =>
+      module.id === moduleId
+        ? {
+            ...module,
+            developerArchived: true,
+            developerArchivedAtMs: Date.now(),
+          }
+        : module
+    );
+
+    setImportedGameModules(nextImportedModules);
+    setMessage(
+      "Module archived in Developer view. It remains available/active in the Admin system."
+    );
+  }
+
+  function restoreDeveloperModule(moduleId) {
+    const nextImportedModules = importedGameModules.map((module) =>
+      module.id === moduleId
+        ? {
+            ...module,
+            developerArchived: false,
+            developerArchivedAtMs: null,
+          }
+        : module
+    );
+
+    setImportedGameModules(nextImportedModules);
+    setMessage("Module restored to active Developer view.");
   }
 
   if (!unlocked) {
@@ -323,6 +372,111 @@ export default function DeveloperPortalPage({
             {message && (
               <div className="mt-4 rounded-2xl bg-slate-100 p-3 text-sm font-bold text-slate-700">
                 {message}
+              </div>
+            )}
+          </PageCard>
+
+          <PageCard>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h3 className="text-xl font-black text-slate-950">
+                  Published Developer Catalog
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  Archive items here to reduce developer clutter. Archived modules remain published to the Admin system and can stay active for end users.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowArchivedModules(!showArchivedModules)}
+                className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-200"
+              >
+                {showArchivedModules
+                  ? "Hide Archived"
+                  : `Show Archived (${archivedImportedModules.length})`}
+              </button>
+            </div>
+
+            <div className="mt-4 grid gap-3">
+              {visibleImportedModules.length === 0 ? (
+                <div className="rounded-2xl bg-slate-100 p-4 text-sm font-bold text-slate-500">
+                  No active developer catalog items. Published modules may be archived below or not created yet.
+                </div>
+              ) : (
+                visibleImportedModules.map((module) => (
+                  <div
+                    key={module.id}
+                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <div className="font-black text-slate-950">
+                          {module.fallbackTitle}
+                        </div>
+                        <div className="text-sm text-slate-500">
+                          {module.fallbackDescription}
+                        </div>
+                        <div className="mt-1 text-xs font-bold text-slate-400">
+                          ID: {module.id} · Component: {module.componentKey}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => archiveDeveloperModule(module.id)}
+                        className="rounded-xl bg-white px-3 py-2 text-sm font-black text-slate-700 hover:bg-slate-100"
+                      >
+                        Archive in Developer
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {showArchivedModules && (
+              <div className="mt-5 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-4">
+                <h4 className="font-black text-slate-950">
+                  Archived Developer Items
+                </h4>
+
+                <div className="mt-3 grid gap-3">
+                  {archivedImportedModules.length === 0 ? (
+                    <div className="rounded-2xl bg-white p-4 text-sm font-bold text-slate-500">
+                      No archived developer items.
+                    </div>
+                  ) : (
+                    archivedImportedModules.map((module) => (
+                      <div
+                        key={module.id}
+                        className="rounded-2xl bg-white p-4"
+                      >
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <div className="font-black text-slate-950">
+                              {module.fallbackTitle}
+                            </div>
+                            <div className="text-sm text-slate-500">
+                              {module.fallbackDescription}
+                            </div>
+                            <div className="mt-1 text-xs font-bold text-slate-400">
+                              ID: {module.id} · Still published to Admin catalog
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => restoreDeveloperModule(module.id)}
+                            className="rounded-xl bg-slate-950 px-3 py-2 text-sm font-black text-white"
+                          >
+                            Restore to Developer
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             )}
           </PageCard>
