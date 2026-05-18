@@ -4,59 +4,156 @@
 const flights = {
   en: {
     flights_title: "Flight Checker",
-    flights_subtitle:
-      "Generate a QR code passengers can scan on their own phone.",
+    flights_subtitle: "Generate a QR code passengers can scan on their own phone.",
     flights_qr_title: "Flight status QR",
     flights_enter: "Enter a flight number",
-    flights_help:
-      "Use the airline code plus number, such as AA123, DL456, UA789, or WN101.",
+    flights_help: "Use the airline code plus number, such as AA123, DL456, UA789, or WN101.",
     flights_placeholder: "Example: AA123",
     flights_button: "Show Flight QR Code",
-    flights_error:
-      "Enter an airline code and flight number, like AA123 or DL456.",
-    flights_scan_help:
-      "Scan with your phone to check this flight outside the ride tablet. This keeps the passenger screen locked in kiosk mode.",
+    flights_error: "Enter an airline code and flight number, like AA123 or DL456.",
+    flights_scan_help: "Scan with your phone to check this flight outside the ride tablet. This keeps the passenger screen locked in kiosk mode.",
     flights_empty_title: "QR code will appear here",
-    flights_empty_sub:
-      "Passengers scan the code with their own phone instead of opening another app on the tablet.",
+    flights_empty_sub: "Passengers scan the code with their own phone instead of opening another app on the tablet.",
   },
 
   es: {
     flights_title: "Verificador de vuelos",
-    flights_subtitle:
-      "Genere un código QR que los pasajeros puedan escanear con su propio teléfono.",
+    flights_subtitle: "Genere un código QR que los pasajeros puedan escanear con su propio teléfono.",
     flights_qr_title: "QR de estado del vuelo",
     flights_enter: "Ingrese un número de vuelo",
-    flights_help:
-      "Use el código de la aerolínea y el número, como AA123, DL456, UA789 o WN101.",
+    flights_help: "Use el código de la aerolínea y el número, como AA123, DL456, UA789 o WN101.",
     flights_placeholder: "Ejemplo: AA123",
     flights_button: "Mostrar código QR del vuelo",
-    flights_error:
-      "Ingrese un código de aerolínea y número de vuelo, como AA123 o DL456.",
-    flights_scan_help:
-      "Escanee con su teléfono para revisar este vuelo fuera de la tableta del viaje. Esto mantiene la pantalla del pasajero en modo kiosco.",
+    flights_error: "Ingrese un código de aerolínea y número de vuelo, como AA123 o DL456.",
+    flights_scan_help: "Escanee con su teléfono para revisar este vuelo fuera de la tableta del viaje. Esto mantiene la pantalla del pasajero en modo kiosco.",
     flights_empty_title: "El código QR aparecerá aquí",
-    flights_empty_sub:
-      "Los pasajeros escanean el código con su propio teléfono en lugar de abrir otra app en la tableta.",
+    flights_empty_sub: "Los pasajeros escanean el código con su propio teléfono en lugar de abrir otra app en la tableta.",
   },
 
   fr: {
     flights_title: "Vérificateur de vols",
-    flights_subtitle:
-      "Générez un QR code que les passagers peuvent scanner avec leur propre téléphone.",
+    flights_subtitle: "Générez un QR code que les passagers peuvent scanner avec leur propre téléphone.",
     flights_qr_title: "QR de statut du vol",
     flights_enter: "Entrez un numéro de vol",
-    flights_help:
-      "Utilisez le code de la compagnie et le numéro, comme AA123, DL456, UA789 ou WN101.",
+    flights_help: "Utilisez le code de la compagnie et le numéro, comme AA123, DL456, UA789 ou WN101.",
     flights_placeholder: "Exemple : AA123",
     flights_button: "Afficher le QR code du vol",
-    flights_error:
-      "Entrez un code de compagnie et un numéro de vol, comme AA123 ou DL456.",
-    flights_scan_help:
-      "Scannez avec votre téléphone pour consulter ce vol hors de la tablette du trajet. Cela garde l’écran passager en mode kiosque.",
+    flights_error: "Entrez un code de compagnie et un numéro de vol, comme AA123 ou DL456.",
+    flights_scan_help: "Scannez avec votre téléphone pour consulter ce vol hors de la tablette du trajet. Cela garde l’écran passager en mode kiosque.",
     flights_empty_title: "Le QR code apparaîtra ici",
-    flights_empty_sub:
-      "Les passagers scannent le code avec leur propre téléphone au lieu d’ouvrir une autre application sur la tablette.",
+    flights_empty_sub: "Les passagers scannent le code avec leur propre téléphone au lieu d’ouvrir une autre application sur la tablette.",
+  },
+
+  de: {
+    flights_title: "Flugprüfung",
+    flights_subtitle: "Erstellt einen QR-Code, den Fahrgäste mit ihrem eigenen Telefon scannen können.",
+    flights_qr_title: "Flugstatus-QR",
+    flights_enter: "Flugnummer eingeben",
+    flights_help: "Verwenden Sie den Airline-Code plus Nummer, z. B. AA123, DL456, UA789 oder WN101.",
+    flights_placeholder: "Beispiel: AA123",
+    flights_button: "Flug-QR-Code anzeigen",
+    flights_error: "Geben Sie einen Airline-Code und eine Flugnummer ein, z. B. AA123 oder DL456.",
+    flights_scan_help: "Scannen Sie mit Ihrem Telefon, um diesen Flug außerhalb des Fahrt-Tablets zu prüfen. So bleibt der Passagierbildschirm im Kioskmodus.",
+    flights_empty_title: "Der QR-Code erscheint hier",
+    flights_empty_sub: "Fahrgäste scannen den Code mit ihrem eigenen Telefon, statt eine weitere App auf dem Tablet zu öffnen.",
+  },
+
+  pt: {
+    flights_title: "Verificador de voos",
+    flights_subtitle: "Gere um código QR que passageiros podem escanear no próprio telefone.",
+    flights_qr_title: "QR de status do voo",
+    flights_enter: "Digite um número de voo",
+    flights_help: "Use o código da companhia aérea mais o número, como AA123, DL456, UA789 ou WN101.",
+    flights_placeholder: "Exemplo: AA123",
+    flights_button: "Mostrar QR do voo",
+    flights_error: "Digite um código de companhia aérea e número de voo, como AA123 ou DL456.",
+    flights_scan_help: "Escaneie com seu telefone para verificar este voo fora do tablet da viagem. Isso mantém a tela do passageiro em modo quiosque.",
+    flights_empty_title: "O código QR aparecerá aqui",
+    flights_empty_sub: "Passageiros escaneiam o código com o próprio telefone em vez de abrir outro app no tablet.",
+  },
+
+  zh: {
+    flights_title: "航班查询",
+    flights_subtitle: "生成乘客可用自己手机扫描的二维码。",
+    flights_qr_title: "航班状态二维码",
+    flights_enter: "输入航班号",
+    flights_help: "使用航空公司代码加号码，例如 AA123、DL456、UA789 或 WN101。",
+    flights_placeholder: "示例：AA123",
+    flights_button: "显示航班二维码",
+    flights_error: "请输入航空公司代码和航班号，例如 AA123 或 DL456。",
+    flights_scan_help: "用手机扫描以在乘车平板之外查看此航班。这会让乘客屏幕保持在自助模式。",
+    flights_empty_title: "二维码将显示在这里",
+    flights_empty_sub: "乘客用自己的手机扫描代码，而不是在平板上打开其他应用。",
+  },
+
+  ar: {
+    flights_title: "فحص الرحلات",
+    flights_subtitle: "أنشئ رمز QR يمكن للركاب مسحه بهواتفهم.",
+    flights_qr_title: "رمز QR لحالة الرحلة",
+    flights_enter: "أدخل رقم الرحلة",
+    flights_help: "استخدم رمز شركة الطيران مع الرقم، مثل AA123 أو DL456 أو UA789 أو WN101.",
+    flights_placeholder: "مثال: AA123",
+    flights_button: "عرض رمز QR للرحلة",
+    flights_error: "أدخل رمز شركة الطيران ورقم الرحلة، مثل AA123 أو DL456.",
+    flights_scan_help: "امسح بهاتفك للتحقق من هذه الرحلة خارج جهاز الرحلة اللوحي. هذا يحافظ على شاشة الراكب في وضع الكشك.",
+    flights_empty_title: "سيظهر رمز QR هنا",
+    flights_empty_sub: "يمسح الركاب الرمز بهواتفهم بدلاً من فتح تطبيق آخر على الجهاز اللوحي.",
+  },
+
+  vi: {
+    flights_title: "Kiểm tra chuyến bay",
+    flights_subtitle: "Tạo mã QR để hành khách quét bằng điện thoại của họ.",
+    flights_qr_title: "QR trạng thái chuyến bay",
+    flights_enter: "Nhập số chuyến bay",
+    flights_help: "Dùng mã hãng bay cộng số, như AA123, DL456, UA789 hoặc WN101.",
+    flights_placeholder: "Ví dụ: AA123",
+    flights_button: "Hiển thị mã QR chuyến bay",
+    flights_error: "Nhập mã hãng bay và số chuyến bay, như AA123 hoặc DL456.",
+    flights_scan_help: "Quét bằng điện thoại để kiểm tra chuyến bay này ngoài tablet. Điều này giữ màn hình hành khách ở chế độ kiosk.",
+    flights_empty_title: "Mã QR sẽ xuất hiện ở đây",
+    flights_empty_sub: "Hành khách quét mã bằng điện thoại của họ thay vì mở ứng dụng khác trên tablet.",
+  },
+
+  ko: {
+    flights_title: "항공편 확인",
+    flights_subtitle: "승객이 자신의 휴대폰으로 스캔할 수 있는 QR 코드를 생성합니다.",
+    flights_qr_title: "항공편 상태 QR",
+    flights_enter: "항공편 번호 입력",
+    flights_help: "AA123, DL456, UA789 또는 WN101처럼 항공사 코드와 번호를 사용하세요.",
+    flights_placeholder: "예: AA123",
+    flights_button: "항공편 QR 코드 표시",
+    flights_error: "AA123 또는 DL456처럼 항공사 코드와 항공편 번호를 입력하세요.",
+    flights_scan_help: "휴대폰으로 스캔하여 승차 태블릿 밖에서 이 항공편을 확인하세요. 승객 화면은 키오스크 모드로 유지됩니다.",
+    flights_empty_title: "QR 코드가 여기에 표시됩니다",
+    flights_empty_sub: "승객은 태블릿에서 다른 앱을 열지 않고 자신의 휴대폰으로 코드를 스캔합니다.",
+  },
+
+  ja: {
+    flights_title: "フライト確認",
+    flights_subtitle: "乗客が自分のスマートフォンでスキャンできるQRコードを生成します。",
+    flights_qr_title: "フライト状況QR",
+    flights_enter: "便名を入力",
+    flights_help: "AA123、DL456、UA789、WN101 のように航空会社コードと番号を入力してください。",
+    flights_placeholder: "例: AA123",
+    flights_button: "フライトQRコードを表示",
+    flights_error: "AA123 や DL456 のように航空会社コードと便名を入力してください。",
+    flights_scan_help: "スマートフォンでスキャンして、乗車タブレット外でこのフライトを確認します。乗客画面はキオスクモードのままです。",
+    flights_empty_title: "QRコードがここに表示されます",
+    flights_empty_sub: "乗客はタブレットで別のアプリを開かず、自分のスマートフォンでコードをスキャンします。",
+  },
+
+  hi: {
+    flights_title: "उड़ान जाँच",
+    flights_subtitle: "ऐसा QR कोड बनाएँ जिसे यात्री अपने फ़ोन से स्कैन कर सकें।",
+    flights_qr_title: "उड़ान स्थिति QR",
+    flights_enter: "उड़ान संख्या दर्ज करें",
+    flights_help: "एयरलाइन कोड और नंबर का उपयोग करें, जैसे AA123, DL456, UA789, या WN101।",
+    flights_placeholder: "उदाहरण: AA123",
+    flights_button: "उड़ान QR कोड दिखाएँ",
+    flights_error: "एयरलाइन कोड और उड़ान संख्या दर्ज करें, जैसे AA123 या DL456।",
+    flights_scan_help: "इस उड़ान को राइड टैबलेट से बाहर जाँचने के लिए अपने फ़ोन से स्कैन करें। इससे यात्री स्क्रीन कियोस्क मोड में रहती है।",
+    flights_empty_title: "QR कोड यहाँ दिखाई देगा",
+    flights_empty_sub: "यात्री टैबलेट पर दूसरा ऐप खोलने के बजाय अपने फ़ोन से कोड स्कैन करते हैं।",
   },
 };
 

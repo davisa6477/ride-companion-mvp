@@ -1,6 +1,5 @@
 // ===== PASSENGER NAVIGATION TRANSLATIONS =====
 // These labels are used by App.jsx for passenger navigation buttons.
-// Admin is no longer shown in passenger nav, but nav_admin is kept for compatibility.
 const navigation = {
   en: {
     nav_home: "Home",
@@ -43,6 +42,119 @@ const navigation = {
     nav_admin: "Admin",
     nav_translate: "Traduire",
   },
+
+  de: {
+    nav_home: "Start",
+    nav_local: "Lokal",
+    nav_guestbook: "Gästebuch",
+    nav_deals: "Angebote",
+    nav_games: "Spiele",
+    nav_weather: "Wetter",
+    nav_requests: "Anfragen",
+    nav_flights: "Flüge",
+    nav_mirror: "Spiegel",
+    nav_admin: "Admin",
+    nav_translate: "Übersetzen",
+  },
+
+  pt: {
+    nav_home: "Início",
+    nav_local: "Local",
+    nav_guestbook: "Livro de visitas",
+    nav_deals: "Ofertas",
+    nav_games: "Jogos",
+    nav_weather: "Clima",
+    nav_requests: "Solicitações",
+    nav_flights: "Voos",
+    nav_mirror: "Espelho",
+    nav_admin: "Admin",
+    nav_translate: "Traduzir",
+  },
+
+  zh: {
+    nav_home: "首页",
+    nav_local: "本地",
+    nav_guestbook: "留言簿",
+    nav_deals: "优惠",
+    nav_games: "游戏",
+    nav_weather: "天气",
+    nav_requests: "请求",
+    nav_flights: "航班",
+    nav_mirror: "镜子",
+    nav_admin: "管理",
+    nav_translate: "翻译",
+  },
+
+  ar: {
+    nav_home: "الرئيسية",
+    nav_local: "محلي",
+    nav_guestbook: "سجل الزوار",
+    nav_deals: "العروض",
+    nav_games: "الألعاب",
+    nav_weather: "الطقس",
+    nav_requests: "الطلبات",
+    nav_flights: "الرحلات",
+    nav_mirror: "المرآة",
+    nav_admin: "الإدارة",
+    nav_translate: "ترجمة",
+  },
+
+  vi: {
+    nav_home: "Trang chủ",
+    nav_local: "Địa phương",
+    nav_guestbook: "Sổ lưu niệm",
+    nav_deals: "Ưu đãi",
+    nav_games: "Trò chơi",
+    nav_weather: "Thời tiết",
+    nav_requests: "Yêu cầu",
+    nav_flights: "Chuyến bay",
+    nav_mirror: "Gương",
+    nav_admin: "Quản trị",
+    nav_translate: "Dịch",
+  },
+
+  ko: {
+    nav_home: "홈",
+    nav_local: "주변",
+    nav_guestbook: "방명록",
+    nav_deals: "혜택",
+    nav_games: "게임",
+    nav_weather: "날씨",
+    nav_requests: "요청",
+    nav_flights: "항공편",
+    nav_mirror: "거울",
+    nav_admin: "관리자",
+    nav_translate: "번역",
+  },
+
+  ja: {
+    nav_home: "ホーム",
+    nav_local: "周辺",
+    nav_guestbook: "ゲストブック",
+    nav_deals: "お得情報",
+    nav_games: "ゲーム",
+    nav_weather: "天気",
+    nav_requests: "リクエスト",
+    nav_flights: "フライト",
+    nav_mirror: "ミラー",
+    nav_admin: "管理",
+    nav_translate: "翻訳",
+  },
+
+  hi: {
+    nav_home: "होम",
+    nav_local: "स्थानीय",
+    nav_guestbook: "गेस्टबुक",
+    nav_deals: "ऑफ़र",
+    nav_games: "गेम्स",
+    nav_weather: "मौसम",
+    nav_requests: "अनुरोध",
+    nav_flights: "उड़ानें",
+    nav_mirror: "आईना",
+    nav_admin: "एडमिन",
+    nav_translate: "अनुवाद",
+  },
+
 };
 
 export default navigation;

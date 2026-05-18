@@ -13,8 +13,6 @@ import tips from "./tips.js";
 import translate from "./translate.js";
 
 // ===== SUPPORTED LANGUAGE LIST =====
-// This list controls language options used by translation-related UI.
-// Some languages currently fall back to English until their modules are expanded.
 export const supportedLanguages = [
   { code: "en", label: "English" },
   { code: "es", label: "Spanish" },
@@ -29,105 +27,41 @@ export const supportedLanguages = [
   { code: "hi", label: "Hindi" },
 ];
 
+function mergeLanguage(language) {
+  return {
+    ...navigation[language],
+    ...home[language],
+    ...requests[language],
+    ...games[language],
+    ...ads[language],
+    ...mirror[language],
+    ...shared[language],
+    ...weather[language],
+    ...flights[language],
+    ...guestbook[language],
+    ...local[language],
+    ...tips[language],
+    ...translate[language],
+  };
+}
+
 // ===== TRANSLATION MATRIX =====
-// Each language object merges page-specific modules into one lookup table.
-// English is the master fallback language.
-// Spanish and French currently have the broadest translation coverage.
+// English remains the master fallback language.
 export const translations = {
-  en: {
-    ...navigation.en,
-    ...home.en,
-    ...requests.en,
-    ...games.en,
-    ...ads.en,
-    ...mirror.en,
-    ...shared.en,
-    ...weather.en,
-    ...flights.en,
-    ...guestbook.en,
-    ...local.en,
-    ...tips.en,
-    ...translate.en,
-  },
-
-  es: {
-    ...navigation.es,
-    ...home.es,
-    ...requests.es,
-    ...games.es,
-    ...ads.es,
-    ...mirror.es,
-    ...shared.es,
-    ...weather.es,
-    ...flights.es,
-    ...guestbook.es,
-    ...local.es,
-    ...tips.es,
-    ...translate.es,
-  },
-
-  fr: {
-    ...navigation.fr,
-    ...home.fr,
-    ...requests.fr,
-    ...games.fr,
-    ...ads.fr,
-    ...mirror.fr,
-    ...shared.fr,
-    ...weather.fr,
-    ...flights.fr,
-    ...guestbook.fr,
-    ...local.fr,
-    ...tips.fr,
-    ...translate.fr,
-  },
-
-  // ===== FUTURE LANGUAGE PLACEHOLDERS =====
-  // These languages currently fall back to English modules until full
-  // translation files are added.
-  de: {
-    ...navigation.en,
-    ...home.en,
-  },
-
-  pt: {
-    ...navigation.en,
-    ...home.en,
-  },
-
-  zh: {
-    ...navigation.en,
-    ...home.en,
-  },
-
-  ar: {
-    ...navigation.en,
-    ...home.en,
-  },
-
-  vi: {
-    ...navigation.en,
-    ...home.en,
-  },
-
-  ko: {
-    ...navigation.en,
-    ...home.en,
-  },
-
-  ja: {
-    ...navigation.en,
-    ...home.en,
-  },
-
-  hi: {
-    ...navigation.en,
-    ...home.en,
-  },
+  en: mergeLanguage("en"),
+  es: mergeLanguage("es"),
+  fr: mergeLanguage("fr"),
+  de: mergeLanguage("de"),
+  pt: mergeLanguage("pt"),
+  zh: mergeLanguage("zh"),
+  ar: mergeLanguage("ar"),
+  vi: mergeLanguage("vi"),
+  ko: mergeLanguage("ko"),
+  ja: mergeLanguage("ja"),
+  hi: mergeLanguage("hi"),
 };
 
 // ===== TRANSLATOR FACTORY =====
-// Returns a simple t(key) function for the selected language.
 // Fallback order:
 // 1. selected language value
 // 2. English value
