@@ -333,7 +333,11 @@ export default function AdminPage({
   function lockAdmin(message = "") {
     setUnlocked(false);
     setPin("");
-    setLoginError(message);
+
+    // When used directly as an onClick handler, React passes the click event.
+    // Only store actual text messages so the login screen never tries to render an event object.
+    setLoginError(typeof message === "string" ? message : "");
+
     setSessionExpiresAt(0);
   }
 
@@ -546,7 +550,7 @@ export default function AdminPage({
 
           <button
             type="button"
-            onClick={lockAdmin}
+            onClick={() => lockAdmin()}
             className="rounded-2xl bg-slate-950 px-5 py-3 font-black text-white"
           >
             Lock Admin
