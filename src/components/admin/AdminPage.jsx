@@ -14,6 +14,12 @@ import {
   getLockoutRemainingMs,
   verifyAdminPin,
 } from "../../services/adminAuthService.js";
+import {
+  getFirebaseAdminEmail,
+  listenToFirebaseAdminAuth,
+  signInFirebaseAdmin,
+  signOutFirebaseAdmin,
+} from "../../services/firebaseAdminAuthService.js";
 
 const PAYMENT_APP_TYPES = [
   { value: "cashapp", label: "Cash App" },
@@ -103,6 +109,13 @@ export default function AdminPage({
   const [lockedUntil, setLockedUntil] = useState(0);
   const [sessionExpiresAt, setSessionExpiresAt] = useState(0);
   const [lockoutTick, setLockoutTick] = useState(0);
+
+  // ===== FIREBASE ADMIN AUTH STATE =====
+  const [firebaseUser, setFirebaseUser] = useState(null);
+  const [firebaseAuthLoading, setFirebaseAuthLoading] = useState(true);
+  const [firebaseEmail, setFirebaseEmail] = useState("");
+  const [firebasePassword, setFirebasePassword] = useState("");
+  const [firebaseAuthError, setFirebaseAuthError] = useState("");
 
   // ===== ADMIN SECTION STATE =====
   // Keeps the admin interface separated into simple internal pages instead of
@@ -268,6 +281,16 @@ export default function AdminPage({
     return () => stopDriverCamera();
   }, []);
 
+  // ===== FIREBASE ADMIN AUTH LISTENER =====
+  useEffect(() => {
+    const unsubscribe = listenToFirebaseAdminAuth((user) => {
+      setFirebaseUser(user);
+      setFirebaseAuthLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   // ===== ADMIN LOCKOUT TIMER =====
   useEffect(() => {
     if (!lockedUntil) return undefined;
@@ -303,6 +326,34 @@ export default function AdminPage({
     // lockAdmin is intentionally defined below and only uses state setters.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unlocked, sessionExpiresAt]);
+
+  // ===== FIREBASE ADMIN AUTH FUNCTIONS =====
+  async function signInAdminIdentity(e) {
+    e.preventDefault();
+    setFirebaseAuthError("");
+
+    try {
+      await signInFirebaseAdmin(firebaseEmail, firebasePassword);
+      setFirebasePassword("");
+    } catch (error) {
+      setFirebaseAuthError(
+        error?.message || "Firebase Admin sign-in failed."
+      );
+    }
+  }
+
+  async function signOutAdminIdentity() {
+    setFirebaseAuthError("");
+
+    try {
+      await signOutFirebaseAdmin();
+      lockAdmin("Firebase Admin signed out. Please sign in again.");
+    } catch (error) {
+      setFirebaseAuthError(
+        error?.message || "Firebase Admin sign-out failed."
+      );
+    }
+  }
 
   // ===== LOGIN FUNCTIONS =====
   function unlock(e) {
@@ -479,53 +530,120 @@ export default function AdminPage({
     0,
     Math.ceil(getAdminSessionRemainingMs(sessionExpiresAt) / 60000)
   );
+  const firebaseAdminEmail = getFirebaseAdminEmail(firebaseUser);
 
   // ===== LOCKED ADMIN LOGIN SCREEN =====
   if (!unlocked) {
     return (
-      <PageCard className="mx-auto max-w-md">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="rounded-2xl bg-slate-100 p-3">
-            <Lock />
+      <div className="mx-auto grid max-w-md gap-4">
+        <PageCard>
+          <div className="mb-4 flex items-center gap-3">
+            <div className="rounded-2xl bg-slate-100 p-3">
+              <Lock />
+            </div>
+
+            <div>
+              <h2 className="text-3xl font-black text-slate-950">
+                Driver Admin
+              </h2>
+              <p className="text-sm text-slate-500">
+                Firebase Admin identity plus local PIN gate.
+              </p>
+            </div>
           </div>
 
-          <h2 className="text-3xl font-black text-slate-950">
-            Driver Admin
-          </h2>
-        </div>
-
-        <form onSubmit={unlock} className="grid gap-3">
-          <input
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
-            placeholder="Enter admin PIN"
-            type="password"
-            inputMode="numeric"
-            disabled={lockedOut}
-            className="rounded-2xl border border-slate-200 p-4 text-lg outline-none focus:ring-4 focus:ring-slate-200 disabled:opacity-50"
-          />
-
-          {loginError && (
-            <div className="rounded-2xl bg-rose-100 p-4 text-sm font-black text-rose-900">
-              {loginError}
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="text-sm font-black text-slate-700">
+              Firebase Admin Identity
             </div>
-          )}
 
-          <button
-            disabled={lockedOut}
-            className="rounded-2xl bg-slate-950 p-4 text-lg font-black text-white shadow-lg disabled:opacity-50"
-          >
-            {lockedOut
-              ? `Locked ${formatLockoutTime(lockoutRemainingMs)}`
-              : "Unlock"}
-          </button>
+            {firebaseAuthLoading ? (
+              <p className="mt-2 text-sm text-slate-500">
+                Checking Firebase sign-in...
+              </p>
+            ) : firebaseUser ? (
+              <div className="mt-2 grid gap-3">
+                <div className="rounded-xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">
+                  Signed in as {firebaseAdminEmail}
+                </div>
 
-          <p className="text-sm text-slate-500">
-            Admin access is protected by a local PIN. Too many incorrect
-            attempts will temporarily lock this screen.
-          </p>
-        </form>
-      </PageCard>
+                <button
+                  type="button"
+                  onClick={signOutAdminIdentity}
+                  className="rounded-xl bg-white px-4 py-2 text-sm font-black text-slate-700"
+                >
+                  Sign out Firebase Admin
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={signInAdminIdentity} className="mt-3 grid gap-3">
+                <input
+                  value={firebaseEmail}
+                  onChange={(e) => setFirebaseEmail(e.target.value)}
+                  placeholder="Admin email"
+                  type="email"
+                  className="rounded-2xl border border-slate-200 p-3 outline-none focus:ring-4 focus:ring-slate-200"
+                />
+
+                <input
+                  value={firebasePassword}
+                  onChange={(e) => setFirebasePassword(e.target.value)}
+                  placeholder="Admin password"
+                  type="password"
+                  className="rounded-2xl border border-slate-200 p-3 outline-none focus:ring-4 focus:ring-slate-200"
+                />
+
+                <button className="rounded-2xl bg-slate-950 p-3 font-black text-white">
+                  Sign in with Firebase
+                </button>
+              </form>
+            )}
+
+            {firebaseAuthError && (
+              <div className="mt-3 rounded-2xl bg-rose-100 p-3 text-sm font-black text-rose-900">
+                {firebaseAuthError}
+              </div>
+            )}
+
+            <p className="mt-3 text-xs text-slate-500">
+              Phase 17A adds Firebase Auth support, but Firestore rules are not
+              tightened yet. The local PIN remains active during transition.
+            </p>
+          </div>
+
+          <form onSubmit={unlock} className="mt-4 grid gap-3">
+            <input
+              value={pin}
+              onChange={(e) => setPin(e.target.value)}
+              placeholder="Enter admin PIN"
+              type="password"
+              inputMode="numeric"
+              disabled={lockedOut}
+              className="rounded-2xl border border-slate-200 p-4 text-lg outline-none focus:ring-4 focus:ring-slate-200 disabled:opacity-50"
+            />
+
+            {loginError && (
+              <div className="rounded-2xl bg-rose-100 p-4 text-sm font-black text-rose-900">
+                {loginError}
+              </div>
+            )}
+
+            <button
+              disabled={lockedOut}
+              className="rounded-2xl bg-slate-950 p-4 text-lg font-black text-white shadow-lg disabled:opacity-50"
+            >
+              {lockedOut
+                ? `Locked ${formatLockoutTime(lockoutRemainingMs)}`
+                : "Unlock Local PIN"}
+            </button>
+
+            <p className="text-sm text-slate-500">
+              The PIN is still the beta local lock. Firebase Auth is now
+              available as the backend identity layer for the next rules pass.
+            </p>
+          </form>
+        </PageCard>
+      </div>
     );
   }
 
@@ -550,15 +668,31 @@ export default function AdminPage({
               Session expires in about {sessionRemainingMinutes} minute
               {sessionRemainingMinutes === 1 ? "" : "s"}.
             </p>
+
+            <p className="mt-1 text-xs font-bold text-slate-400">
+              Firebase Admin: {firebaseAdminEmail || "not signed in"}
+            </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => lockAdmin()}
-            className="rounded-2xl bg-slate-950 px-5 py-3 font-black text-white"
-          >
-            Lock Admin
-          </button>
+          <div className="flex flex-wrap gap-2">
+            {firebaseUser && (
+              <button
+                type="button"
+                onClick={signOutAdminIdentity}
+                className="rounded-2xl bg-slate-100 px-5 py-3 font-black text-slate-700"
+              >
+                Sign Out Firebase
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => lockAdmin()}
+              className="rounded-2xl bg-slate-950 px-5 py-3 font-black text-white"
+            >
+              Lock Admin
+            </button>
+          </div>
         </div>
 
         <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">

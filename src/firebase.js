@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 // ===== FIREBASE CLIENT CONFIG =====
 // This config connects the passenger tablet and driver console to the same Firebase project.
@@ -20,3 +21,7 @@ const app = initializeApp(firebaseConfig);
 // ===== FIRESTORE DATABASE EXPORT =====
 // Used by rideSessionService.js for passenger requests and language sync.
 export const db = getFirestore(app);
+
+// ===== FIREBASE AUTH EXPORT =====
+// Used by Admin auth service for email/password admin login.
+export const auth = getAuth(app);
