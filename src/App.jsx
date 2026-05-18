@@ -11,19 +11,19 @@ import {
   Store,
 } from "lucide-react";
 
-import NavButton from "./components/NavButton.jsx";
-import HomePage from "./components/HomePage.jsx";
-import GuestbookPage from "./components/GuestbookPage.jsx";
-import AdsPage from "./components/AdsPage.jsx";
-import LocalPage from "./components/LocalPage";
-import GamesPage from "./components/GamesPage.jsx";
-import WeatherPage from "./components/WeatherPage.jsx";
-import RequestsPage from "./components/RequestsPage.jsx";
-import FlightCheckerPage from "./components/FlightCheckerPage.jsx";
-import MirrorPage from "./components/MirrorPage.jsx";
-import TranslationPage from "./components/TranslationPage.jsx";
-import AdminPage from "./components/AdminPage.jsx";
-import DriverConsolePage from "./components/DriverConsolePage.jsx";
+import NavButton from "./components/layout/NavButton.jsx";
+import HomePage from "./components/pages/HomePage.jsx";
+import GuestbookPage from "./components/pages/GuestbookPage.jsx";
+import AdsPage from "./components/pages/AdsPage.jsx";
+import LocalPage from "./components/pages/LocalPage.jsx";
+import GamesPage from "./components/pages/GamesPage.jsx";
+import WeatherPage from "./components/pages/WeatherPage.jsx";
+import RequestsPage from "./components/pages/RequestsPage.jsx";
+import FlightCheckerPage from "./components/pages/FlightCheckerPage.jsx";
+import MirrorPage from "./components/pages/MirrorPage.jsx";
+import TranslationPage from "./components/pages/TranslationPage.jsx";
+import AdminPage from "./components/admin/AdminPage.jsx";
+import DriverConsolePage from "./components/console/DriverConsolePage.jsx";
 
 import { starterAds } from "./data/starterAds.js";
 import { defaultRequestCategories as starterRequestCategories } from "./data/defaultRequests.js";
