@@ -69,6 +69,16 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // ===== ADS / LOCAL DEALS =====
+    match /ads/{adId} {
+      // Passenger tablet needs to read active deals.
+      // Production can narrow this to active-only if desired.
+      allow read: if true;
+
+      // Admin-only in production.
+      allow create, update, delete: if isAdmin();
+    }
+
     // ===== DEFAULT DENY =====
     match /{document=**} {
       allow read, write: if false;

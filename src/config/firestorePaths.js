@@ -12,4 +12,5 @@ export const FIRESTORE_PATHS = {
   guestbookEntries: "guestbookEntries",
   legacyGuestbook: "guestbook",
   legacyGuestbookEntriesDocId: "entries",
+  ads: "ads",
 };

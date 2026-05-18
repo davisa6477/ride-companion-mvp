@@ -360,9 +360,12 @@ export default function AdminPage({
 
     if (!newAd.businessName.trim() || !newAd.headline.trim()) return;
 
+    const createdAtMs = Date.now();
+
     setAds([
       {
-        id: Date.now(),
+        id: String(createdAtMs),
+        createdAtMs,
         ...newAd,
         active: true,
       },

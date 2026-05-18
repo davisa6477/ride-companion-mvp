@@ -25,11 +25,12 @@ Used for:
 adminConfig/content
 adminConfig/settings
 guestbookEntries/{entryId}
+ads/{adId}
 ```
 
 Used for:
 - driver profile,
-- ads/deals,
+- ads/deals in a separate ads container,
 - tip options,
 - request categories,
 - admin PIN while still in MVP mode,
@@ -102,3 +103,14 @@ That would allow even cleaner create/update/delete rules.
 ## Important Note
 
 Do not treat the admin PIN as true backend security. It is only a local UI gate. Real backend protection should use Firebase Auth and Firestore security rules.
+
+
+## Ads Container Status
+
+Ads/deals have been split out of the combined adminConfig/content snapshot into per-ad documents:
+
+```txt
+ads/{adId}
+```
+
+This lets Admin add, delete, and toggle ads independently from profile/settings-style content. It also prepares future rules where only Admin can write ads while passengers can read active deals.

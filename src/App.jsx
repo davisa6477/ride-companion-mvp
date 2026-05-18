@@ -41,6 +41,11 @@ import {
   listenToSharedGuestbookEntries,
   saveSharedGuestbookEntries,
 } from "./services/firestoreGuestbookService.js";
+import {
+  getSharedAds,
+  listenToSharedAds,
+  saveSharedAds,
+} from "./services/firestoreAdsService.js";
 
 export default function App() {
   // ===== ROUTE DETECTION =====
@@ -77,6 +82,7 @@ export default function App() {
   const lastSharedAdminContentJsonRef = useRef("");
   const lastSharedAppSettingsJsonRef = useRef("");
   const lastSharedGuestbookEntriesJsonRef = useRef("");
+  const lastSharedAdsJsonRef = useRef("");
 
   // ===== GUESTBOOK STATE =====
   const [entries, setEntries] = useState(() => initialAdminContent.entries);
@@ -111,7 +117,6 @@ export default function App() {
   // ===== SHARED STATE NORMALIZERS =====
   function normalizeSharedAdminContent(sharedContent = {}) {
     return {
-      ads: sharedContent.ads || [],
       adminPin: sharedContent.adminPin || adminPin,
       requestCategories: sharedContent.requestCategories || {},
       driverProfile: sharedContent.driverProfile || driverProfile,
@@ -125,7 +130,6 @@ export default function App() {
     lastSharedAdminContentJsonRef.current =
       JSON.stringify(normalizedContent);
 
-    setAds(normalizedContent.ads);
     setAdminPin(normalizedContent.adminPin);
     setRequestCategories(normalizedContent.requestCategories);
     setDriverProfile(normalizedContent.driverProfile);
@@ -150,6 +154,15 @@ export default function App() {
     setEntries(sharedEntries);
   }
 
+  function applySharedAds(sharedAds) {
+    if (!Array.isArray(sharedAds)) return;
+
+    lastSharedAdsJsonRef.current =
+      JSON.stringify(sharedAds);
+
+    setAds(sharedAds);
+  }
+
   // ===== OPTIONAL FIRESTORE INITIAL LOAD =====
   // Local storage is still the immediate fallback. If shared Firestore content
   // exists, it replaces the local initial state after the app mounts.
@@ -158,11 +171,12 @@ export default function App() {
 
     async function loadSharedState() {
       try {
-        const [sharedContent, sharedSettings, sharedGuestbookEntries] =
+        const [sharedContent, sharedSettings, sharedGuestbookEntries, sharedAds] =
           await Promise.all([
             loadSharedAdminContent(),
             loadSharedAppSettings(),
             getSharedGuestbookEntries(),
+            getSharedAds(),
           ]);
 
         if (!mounted) return;
@@ -177,6 +191,10 @@ export default function App() {
 
         if (Array.isArray(sharedGuestbookEntries)) {
           applySharedGuestbookEntries(sharedGuestbookEntries);
+        }
+
+        if (Array.isArray(sharedAds) && sharedAds.length > 0) {
+          applySharedAds(sharedAds);
         }
       } catch (error) {
         console.error("Failed to load shared Firestore state:", error);
@@ -219,10 +237,17 @@ export default function App() {
       setSharedStateReady(true);
     });
 
+    const unsubscribeAds = listenToSharedAds((sharedAds) => {
+      if (!Array.isArray(sharedAds)) return;
+      applySharedAds(sharedAds);
+      setSharedStateReady(true);
+    });
+
     return () => {
       if (unsubscribeContent) unsubscribeContent();
       if (unsubscribeSettings) unsubscribeSettings();
       if (unsubscribeGuestbook) unsubscribeGuestbook();
+      if (unsubscribeAds) unsubscribeAds();
     };
     // Run once. Helper functions intentionally use current state fallbacks.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -257,7 +282,18 @@ export default function App() {
   // ===== ADS PERSISTENCE =====
   useEffect(() => {
     saveAds(ads);
-  }, [ads]);
+
+    if (!sharedStateReady || !canWriteFullAdminContent) return;
+
+    const adsJson = JSON.stringify(ads);
+
+    if (adsJson === lastSharedAdsJsonRef.current) {
+      return;
+    }
+
+    lastSharedAdsJsonRef.current = adsJson;
+    saveSharedAds(ads);
+  }, [ads, sharedStateReady, canWriteFullAdminContent]);
 
   // ===== GUESTBOOK PERSISTENCE =====
   useEffect(() => {
@@ -286,13 +322,12 @@ export default function App() {
   }, [adminPin]);
 
   // ===== SHARED FIRESTORE ADMIN CONTENT SNAPSHOT =====
-  // Guestbook entries now sync through services/firestoreGuestbookService.js.
-  // This snapshot is admin-only and contains non-guestbook admin content.
+  // Guestbook entries and ads now sync through their own Firestore services.
+  // This snapshot is admin-only and contains remaining non-containerized admin content.
   useEffect(() => {
     if (!sharedStateReady || !canWriteFullAdminContent) return;
 
     const contentSnapshot = {
-      ads,
       adminPin,
       requestCategories,
       driverProfile,
@@ -308,7 +343,6 @@ export default function App() {
     lastSharedAdminContentJsonRef.current = contentJson;
     saveSharedAdminContentSnapshot(contentSnapshot);
   }, [
-    ads,
     adminPin,
     requestCategories,
     driverProfile,
