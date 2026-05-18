@@ -194,20 +194,22 @@ export default function HomePage({
 
         {/* ===== FEATURED LOCAL DEAL CARD ===== */}
         {featuredAd && (
-          <PageCard className="shrink-0">
-            <div className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+          <PageCard className="min-w-0 shrink-0 overflow-hidden">
+            <div className="mb-2 min-w-0 break-words text-xs font-bold uppercase tracking-wide text-slate-500">
               {tr("home_featured_deal", "Featured local deal")}
             </div>
 
-            <h3 className="text-2xl font-black text-slate-950">
+            <h3 className="min-w-0 break-words text-2xl font-black leading-tight text-slate-950">
               {featuredAd.businessName}
             </h3>
 
-            <p className="mt-1 font-bold text-slate-700">
+            <p className="mt-1 min-w-0 break-words font-bold leading-snug text-slate-700">
               {featuredAd.headline}
             </p>
 
-            <p className="mt-2 text-slate-600">{featuredAd.description}</p>
+            <p className="mt-2 min-w-0 break-words text-slate-600">
+              {featuredAd.description}
+            </p>
           </PageCard>
         )}
       </div>
