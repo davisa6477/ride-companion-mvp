@@ -34,6 +34,14 @@ function createDeviceId() {
   return `device-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function createDeviceToken() {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+
+  return `token-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 export function getPairingCodeRef(code) {
   return doc(db, PAIRING_CODES_COLLECTION, String(code));
 }
@@ -77,6 +85,7 @@ export async function createPairingCode({
 
   const pendingDevice = {
     deviceId,
+    deviceToken,
     code,
     deviceType,
     deviceLabel: String(deviceLabel || "").trim(),
@@ -144,6 +153,7 @@ export async function approvePairingCode(code, approvedBy = "") {
 
   const pairedDevice = {
     deviceId: pairing.deviceId,
+    deviceToken: pairing.deviceToken || "",
     deviceType: pairing.deviceType || DEFAULT_DEVICE_TYPE,
     deviceLabel: pairing.deviceLabel || "",
     configId: pairing.configId || "default",
@@ -206,6 +216,7 @@ export async function removePairedDevice(deviceId) {
 export function buildLocalPairedDeviceFromPairing(pairing) {
   return {
     deviceId: pairing.deviceId,
+    deviceToken: pairing.deviceToken || "",
     deviceType: pairing.deviceType || DEFAULT_DEVICE_TYPE,
     deviceLabel: pairing.deviceLabel || "",
     configId: pairing.configId || "default",
@@ -248,6 +259,22 @@ export function listenToLocalPairedDeviceValidation(callback, onError) {
         deviceId: snapshot.id,
         ...snapshot.data(),
       };
+
+      if (
+        localDevice.deviceToken &&
+        remoteDevice.deviceToken &&
+        localDevice.deviceToken !== remoteDevice.deviceToken
+      ) {
+        clearLocalPairedDevice();
+
+        callback({
+          pairedDevice: null,
+          valid: false,
+          reason: "pairing-token-mismatch",
+        });
+
+        return;
+      }
 
       if (remoteDevice.approved === false) {
         clearLocalPairedDevice();

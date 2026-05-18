@@ -1,3 +1,5 @@
+import { loadLocalPairedDevice } from "./devicePairingService.js";
+
 import {
   addDoc,
   collection,
@@ -18,6 +20,22 @@ import { db } from "../firebase.js";
 const SESSION_ID = "current";
 
 // ===== FIRESTORE REFERENCES =====
+
+function getLocalDeviceMetadata() {
+  const localDevice = loadLocalPairedDevice();
+
+  if (!localDevice?.deviceId) {
+    return {};
+  }
+
+  return {
+    deviceId: localDevice.deviceId,
+    deviceToken: localDevice.deviceToken || "",
+    deviceType: localDevice.deviceType || "",
+    deviceName: localDevice.deviceName || localDevice.deviceLabel || "",
+  };
+}
+
 export function getRideSessionRef() {
   return doc(db, "rideSessions", SESSION_ID);
 }
@@ -77,6 +95,7 @@ export async function setPassengerLanguage(language) {
     {
       passengerLanguage: language,
       updatedAt: serverTimestamp(),
+      updatedByDevice: getLocalDeviceMetadata(),
     },
     { merge: true }
   );

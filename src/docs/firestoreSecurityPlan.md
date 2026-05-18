@@ -183,3 +183,25 @@ pairedDevices/{deviceId}
 Devices can generate a short code without Admin credentials. Admin approves the code from `/admin > Pairing`. The device then stores its paired device record locally.
 
 This is not yet used to scope reads/writes by config/session, but it establishes the structure needed for device-based rules later.
+
+
+## Phase 18F Paired Device Rules Alignment
+
+Pairing now includes a generated `deviceToken` stored both locally and in `pairedDevices/{deviceId}`. This gives future Firestore rules a value to compare when a paired device writes requests/status updates.
+
+Request writes and status updates can include device metadata from local pairing:
+
+```txt
+deviceMetadata.deviceId
+deviceMetadata.deviceToken
+deviceMetadata.deviceType
+deviceMetadata.deviceName
+```
+
+A draft rules file was added:
+
+```txt
+src/docs/firestoreRulesPhase18FPairedDeviceDraft.rules
+```
+
+This draft is still conservative and should be reviewed before publishing.
