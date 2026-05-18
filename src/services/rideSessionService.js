@@ -51,6 +51,7 @@ export async function sendPassengerRequest(request) {
   return addDoc(getRequestsCollectionRef(), {
     ...request,
     status: "pending",
+    deviceMetadata: getLocalDeviceMetadata(),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -64,6 +65,7 @@ export async function updatePassengerRequestStatus(requestId, status) {
   return updateDoc(requestRef, {
     status,
     updatedAt: serverTimestamp(),
+    updatedByDevice: getLocalDeviceMetadata(),
   });
 }
 

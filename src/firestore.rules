@@ -106,7 +106,8 @@ service cloud.firestore {
         // Later this can be changed to: allow create: if isPairedPassengerTablet();
         allow create: if true;
 
-        // Request status updates can be Firebase Admin or paired Driver Console.
+        // Request status updates can be Firebase Admin or a paired Driver Console.
+        // App writes updatedByDevice.deviceId/deviceToken/deviceType on status updates.
         allow update: if isAdmin() || isPairedDriverConsoleFromUpdate();
 
         allow delete: if isAdmin();

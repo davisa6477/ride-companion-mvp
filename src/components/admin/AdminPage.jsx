@@ -510,7 +510,7 @@ export default function AdminPage({
 
     try {
       await removePairedDevice(deviceId);
-      setPairingMessage("Paired device removed.");
+      setPairingMessage("Paired device and related pairing codes removed.");
     } catch (error) {
       setPairingMessage(error?.message || "Could not remove paired device.");
     }

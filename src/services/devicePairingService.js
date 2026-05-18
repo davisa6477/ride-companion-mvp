@@ -3,10 +3,14 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  getDocs,
   onSnapshot,
+  query,
   serverTimestamp,
   setDoc,
   updateDoc,
+  where,
+  writeBatch,
 } from "firebase/firestore";
 
 import { db } from "../firebase.js";
@@ -144,6 +148,28 @@ export function listenToPendingPairingCodes(callback, onError) {
   );
 }
 
+
+async function deletePairingCodesForDevice(deviceId) {
+  if (!deviceId) return;
+
+  const pairingQuery = query(
+    collection(db, PAIRING_CODES_COLLECTION),
+    where("deviceId", "==", String(deviceId))
+  );
+
+  const snapshot = await getDocs(pairingQuery);
+
+  if (snapshot.empty) return;
+
+  const batch = writeBatch(db);
+
+  snapshot.docs.forEach((codeDoc) => {
+    batch.delete(codeDoc.ref);
+  });
+
+  await batch.commit();
+}
+
 export async function approvePairingCode(code, approvedBy = "") {
   const codeRef = getPairingCodeRef(code);
   const snapshot = await getDoc(codeRef);
@@ -196,6 +222,10 @@ export async function deletePairingCode(code) {
   return deleteDoc(getPairingCodeRef(code));
 }
 
+export async function cleanupPairingCodesForDevice(deviceId) {
+  return deletePairingCodesForDevice(deviceId);
+}
+
 export function listenToPairedDevices(callback, onError) {
   return onSnapshot(
     collection(db, PAIRED_DEVICES_COLLECTION),
@@ -217,6 +247,10 @@ export function listenToPairedDevices(callback, onError) {
 }
 
 export async function removePairedDevice(deviceId) {
+  // Remove both the approved paired-device record and any pairing-code
+  // documents that were associated with that same device. This prevents stale
+  // approved/rejected/pending codes from lingering after Admin removes a device.
+  await deletePairingCodesForDevice(deviceId);
   return deleteDoc(getPairedDeviceRef(deviceId));
 }
 
