@@ -83,7 +83,25 @@ export default function GamesPage({ t = (key) => key }) {
       </aside>
 
       <section className="min-h-0 min-w-0">
-        <GameShell>{SelectedGame ? <SelectedGame t={t} /> : null}</GameShell>
+        <GameShell>
+          {SelectedGame ? (
+            <SelectedGame t={t} />
+          ) : (
+            <div className="flex h-full items-center justify-center rounded-3xl bg-slate-950 p-6 text-center text-white">
+              <div>
+                <div className="text-2xl font-black">
+                  {tr("games_none_available", "No games available")}
+                </div>
+                <p className="mt-2 text-sm text-white/60">
+                  {tr(
+                    "games_none_available_sub",
+                    "Add or enable a game module to show it here."
+                  )}
+                </p>
+              </div>
+            </div>
+          )}
+        </GameShell>
       </section>
     </div>
   );

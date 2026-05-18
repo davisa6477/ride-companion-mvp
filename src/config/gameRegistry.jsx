@@ -1,53 +1,25 @@
-import TriviaGame from "../components/games/TriviaGame.jsx";
-import BlackjackGame from "../components/games/BlackjackGame.jsx";
-import RideBingoGame from "../components/games/RideBingoGame.jsx";
-import EmojiGuessGame from "../components/games/EmojiGuessGame.jsx";
-import TicTacToeGame from "../components/games/TicTacToeGame.jsx";
+import { gameModules } from "../components/games/modules/index.jsx";
 
 // ===== GAME REGISTRY =====
-// Controls game order, labels, descriptions, and rendered component.
-// Add/remove/swap games here instead of editing GamesPage.jsx branching logic.
-export const gameRegistry = [
-  {
-    id: "trivia",
-    titleKey: "games_trivia",
-    fallbackTitle: "Ride Trivia",
-    descriptionKey: "games_trivia_sub",
-    fallbackDescription: "Quick trivia for short rides.",
-    Component: TriviaGame,
-  },
-  {
-    id: "blackjack",
-    titleKey: "games_blackjack",
-    fallbackTitle: "Blackjack",
-    descriptionKey: "games_blackjack_sub",
-    fallbackDescription: "Classic card game against the dealer.",
-    Component: BlackjackGame,
-  },
-  {
-    id: "bingo",
-    titleKey: "games_bingo",
-    fallbackTitle: "Ride Bingo",
-    descriptionKey: "games_bingo_sub",
-    fallbackDescription: "Spot ride moments and mark the card.",
-    Component: RideBingoGame,
-  },
-  {
-    id: "emoji",
-    titleKey: "games_emoji",
-    fallbackTitle: "Emoji Guess",
-    descriptionKey: "games_emoji_sub",
-    fallbackDescription: "Guess the phrase from emoji clues.",
-    Component: EmojiGuessGame,
-  },
-  {
-    id: "tictactoe",
-    titleKey: "games_ttt",
-    fallbackTitle: "Tic Tac Toe",
-    descriptionKey: "games_ttt_sub",
-    fallbackDescription: "Play against a friend or the computer.",
-    Component: TicTacToeGame,
-  },
-];
+// The Games page now reads plug-and-play game modules.
+// Individual game metadata lives beside each module in:
+// components/games/modules/*GameModule.jsx
+//
+// Add/remove/swap games by editing the module list, not GamesPage.jsx.
+
+function isValidGameModule(module) {
+  return Boolean(
+    module &&
+      module.id &&
+      module.Component &&
+      module.titleKey &&
+      module.fallbackTitle
+  );
+}
+
+export const gameRegistry = gameModules
+  .filter((module) => module.enabled !== false)
+  .filter(isValidGameModule)
+  .sort((a, b) => (a.order || 999) - (b.order || 999));
 
 export const defaultGameId = gameRegistry[0]?.id || "trivia";
