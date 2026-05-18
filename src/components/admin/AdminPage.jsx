@@ -7,6 +7,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Lock, Plus, Trash2 } from "lucide-react";
 import PageCard from "../layout/PageCard.jsx";
+import {
+  formatLockoutTime,
+  getAdminSessionRemainingMs,
+  getLockoutRemainingMs,
+  verifyAdminPin,
+} from "../../services/adminAuthService.js";
 
 const PAYMENT_APP_TYPES = [
   { value: "cashapp", label: "Cash App" },
@@ -92,6 +98,10 @@ export default function AdminPage({
   const [pin, setPin] = useState("");
   const [unlocked, setUnlocked] = useState(false);
   const [loginError, setLoginError] = useState("");
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockedUntil, setLockedUntil] = useState(0);
+  const [sessionExpiresAt, setSessionExpiresAt] = useState(0);
+  const [lockoutTick, setLockoutTick] = useState(0);
 
   // ===== ADMIN SECTION STATE =====
   // Keeps the admin interface separated into simple internal pages instead of
@@ -257,24 +267,74 @@ export default function AdminPage({
     return () => stopDriverCamera();
   }, []);
 
+  // ===== ADMIN LOCKOUT TIMER =====
+  useEffect(() => {
+    if (!lockedUntil) return undefined;
+
+    const timer = window.setInterval(() => {
+      setLockoutTick((value) => value + 1);
+
+      if (getLockoutRemainingMs(lockedUntil) <= 0) {
+        setLockedUntil(0);
+        setLoginError("");
+      }
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [lockedUntil]);
+
+  // ===== ADMIN SESSION EXPIRATION =====
+  useEffect(() => {
+    if (!unlocked || !sessionExpiresAt) return undefined;
+
+    const remainingMs = getAdminSessionRemainingMs(sessionExpiresAt);
+
+    if (remainingMs <= 0) {
+      lockAdmin("Admin session expired. Please unlock again.");
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => {
+      lockAdmin("Admin session expired. Please unlock again.");
+    }, remainingMs);
+
+    return () => window.clearTimeout(timer);
+    // lockAdmin is intentionally defined below and only uses state setters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unlocked, sessionExpiresAt]);
+
   // ===== LOGIN FUNCTIONS =====
   function unlock(e) {
     e.preventDefault();
 
-    if (pin === adminPin) {
+    const result = verifyAdminPin({
+      enteredPin: pin,
+      adminPin,
+      failedAttempts,
+      lockedUntil,
+    });
+
+    if (result.success) {
       setUnlocked(true);
       setLoginError("");
+      setFailedAttempts(0);
+      setLockedUntil(0);
+      setSessionExpiresAt(result.sessionExpiresAt);
+      setPin("");
       return;
     }
 
-    setLoginError("Incorrect PIN. Please try again.");
+    setFailedAttempts(result.failedAttempts);
+    setLockedUntil(result.lockedUntil);
+    setLoginError(result.message);
     setPin("");
   }
 
-  function lockAdmin() {
+  function lockAdmin(message = "") {
     setUnlocked(false);
     setPin("");
-    setLoginError("");
+    setLoginError(message);
+    setSessionExpiresAt(0);
   }
 
   // ===== GUESTBOOK FUNCTIONS =====
@@ -331,7 +391,7 @@ export default function AdminPage({
     setPinMessage("");
 
     if (newPin.length < 4) {
-      setPinMessage("PIN must be at least 4 digits.");
+      setPinMessage("Admin PIN must be at least 4 digits.");
       return;
     }
 
@@ -343,7 +403,7 @@ export default function AdminPage({
     setAdminPin(newPin);
     setNewPin("");
     setConfirmPin("");
-    setPinMessage("Admin PIN updated.");
+    setPinMessage("Admin PIN updated. Future backend auth can replace this local PIN gate.");
   }
 
   // ===== CUSTOM REQUEST FUNCTIONS =====
@@ -405,6 +465,13 @@ export default function AdminPage({
     return "";
   }
 
+  const lockoutRemainingMs = getLockoutRemainingMs(lockedUntil);
+  const lockedOut = lockoutRemainingMs > 0;
+  const sessionRemainingMinutes = Math.max(
+    0,
+    Math.ceil(getAdminSessionRemainingMs(sessionExpiresAt) / 60000)
+  );
+
   // ===== LOCKED ADMIN LOGIN SCREEN =====
   if (!unlocked) {
     return (
@@ -423,9 +490,11 @@ export default function AdminPage({
           <input
             value={pin}
             onChange={(e) => setPin(e.target.value)}
-            placeholder="Enter PIN"
+            placeholder="Enter admin PIN"
             type="password"
-            className="rounded-2xl border border-slate-200 p-4 text-lg outline-none focus:ring-4 focus:ring-slate-200"
+            inputMode="numeric"
+            disabled={lockedOut}
+            className="rounded-2xl border border-slate-200 p-4 text-lg outline-none focus:ring-4 focus:ring-slate-200 disabled:opacity-50"
           />
 
           {loginError && (
@@ -434,12 +503,18 @@ export default function AdminPage({
             </div>
           )}
 
-          <button className="rounded-2xl bg-slate-950 p-4 text-lg font-black text-white shadow-lg">
-            Unlock
+          <button
+            disabled={lockedOut}
+            className="rounded-2xl bg-slate-950 p-4 text-lg font-black text-white shadow-lg disabled:opacity-50"
+          >
+            {lockedOut
+              ? `Locked ${formatLockoutTime(lockoutRemainingMs)}`
+              : "Unlock"}
           </button>
 
           <p className="text-sm text-slate-500">
-            Temporary starting PIN: 1234
+            Admin access is protected by a local PIN. Too many incorrect
+            attempts will temporarily lock this screen.
           </p>
         </form>
       </PageCard>
@@ -461,6 +536,11 @@ export default function AdminPage({
 
             <p className="text-sm text-slate-500">
               Choose a section below. Each section opens as its own admin page.
+            </p>
+
+            <p className="mt-1 text-xs font-bold text-slate-400">
+              Session expires in about {sessionRemainingMinutes} minute
+              {sessionRemainingMinutes === 1 ? "" : "s"}.
             </p>
           </div>
 
@@ -591,7 +671,7 @@ export default function AdminPage({
           <input
             value={newPin}
             onChange={(e) => setNewPin(e.target.value)}
-            placeholder="New PIN"
+            placeholder="New admin PIN"
             type="password"
             inputMode="numeric"
             className="rounded-2xl border border-slate-200 p-3 outline-none"
@@ -600,7 +680,7 @@ export default function AdminPage({
           <input
             value={confirmPin}
             onChange={(e) => setConfirmPin(e.target.value)}
-            placeholder="Confirm New PIN"
+            placeholder="Confirm new admin PIN"
             type="password"
             inputMode="numeric"
             className="rounded-2xl border border-slate-200 p-3 outline-none"
