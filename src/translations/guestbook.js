@@ -15,29 +15,114 @@ const guestbook = {
 
   es: {
     guestbook_title: "Deje una nota",
-    guestbook_subtitle:
-      "Los mensajes aparecen después de la aprobación del conductor.",
+    guestbook_subtitle: "Los mensajes aparecen después de la aprobación del conductor.",
     guestbook_name: "Nombre o apodo",
     guestbook_city: "Ciudad/estado opcional",
     guestbook_message: "Su mensaje",
     guestbook_submit: "Enviar para aprobación",
     guestbook_wall: "Muro del viaje",
-    guestbook_empty:
-      "Todavía no hay notas aprobadas. ¡Sea el primero!",
+    guestbook_empty: "Todavía no hay notas aprobadas. ¡Sea el primero!",
   },
 
   fr: {
     guestbook_title: "Laissez un message",
-    guestbook_subtitle:
-      "Les messages apparaissent après approbation du chauffeur.",
+    guestbook_subtitle: "Les messages apparaissent après approbation du chauffeur.",
     guestbook_name: "Prénom ou surnom",
     guestbook_city: "Ville/région facultative",
     guestbook_message: "Votre message",
     guestbook_submit: "Soumettre pour approbation",
     guestbook_wall: "Mur du trajet",
-    guestbook_empty:
-      "Aucun message approuvé pour le moment. Soyez le premier !",
+    guestbook_empty: "Aucun message approuvé pour le moment. Soyez le premier !",
   },
+
+  de: {
+    guestbook_title: "Eine Nachricht hinterlassen",
+    guestbook_subtitle: "Nachrichten erscheinen nach Freigabe durch den Fahrer.",
+    guestbook_name: "Vorname oder Spitzname",
+    guestbook_city: "Stadt/Bundesland optional",
+    guestbook_message: "Ihre Nachricht",
+    guestbook_submit: "Zur Freigabe senden",
+    guestbook_wall: "Fahrt-Pinnwand",
+    guestbook_empty: "Noch keine freigegebenen Nachrichten. Seien Sie der Erste!",
+  },
+
+  pt: {
+    guestbook_title: "Deixe uma mensagem",
+    guestbook_subtitle: "As mensagens aparecem após aprovação do motorista.",
+    guestbook_name: "Nome ou apelido",
+    guestbook_city: "Cidade/estado opcional",
+    guestbook_message: "Sua mensagem",
+    guestbook_submit: "Enviar para aprovação",
+    guestbook_wall: "Mural da viagem",
+    guestbook_empty: "Ainda não há mensagens aprovadas. Seja o primeiro!",
+  },
+
+  zh: {
+    guestbook_title: "留下留言",
+    guestbook_subtitle: "留言将在司机批准后显示。",
+    guestbook_name: "名字或昵称",
+    guestbook_city: "城市/州（可选）",
+    guestbook_message: "您的留言",
+    guestbook_submit: "提交审核",
+    guestbook_wall: "乘车留言墙",
+    guestbook_empty: "还没有已批准的留言。快来成为第一个！",
+  },
+
+  ar: {
+    guestbook_title: "اترك رسالة",
+    guestbook_subtitle: "تظهر الرسائل بعد موافقة السائق.",
+    guestbook_name: "الاسم الأول أو اللقب",
+    guestbook_city: "المدينة/الولاية اختياري",
+    guestbook_message: "رسالتك",
+    guestbook_submit: "إرسال للموافقة",
+    guestbook_wall: "حائط الرحلة",
+    guestbook_empty: "لا توجد رسائل معتمدة بعد. كن الأول!",
+  },
+
+  vi: {
+    guestbook_title: "Để lại lời nhắn",
+    guestbook_subtitle: "Tin nhắn sẽ xuất hiện sau khi tài xế phê duyệt.",
+    guestbook_name: "Tên hoặc biệt danh",
+    guestbook_city: "Thành phố/tiểu bang tùy chọn",
+    guestbook_message: "Tin nhắn của bạn",
+    guestbook_submit: "Gửi để phê duyệt",
+    guestbook_wall: "Tường chuyến đi",
+    guestbook_empty: "Chưa có lời nhắn nào được duyệt. Hãy là người đầu tiên!",
+  },
+
+  ko: {
+    guestbook_title: "메모 남기기",
+    guestbook_subtitle: "메시지는 운전자의 승인 후 표시됩니다.",
+    guestbook_name: "이름 또는 별명",
+    guestbook_city: "도시/주 선택 사항",
+    guestbook_message: "메시지",
+    guestbook_submit: "승인 요청하기",
+    guestbook_wall: "승차 메모판",
+    guestbook_empty: "아직 승인된 메모가 없습니다. 첫 번째로 남겨보세요!",
+  },
+
+  ja: {
+    guestbook_title: "メッセージを残す",
+    guestbook_subtitle: "メッセージはドライバーの承認後に表示されます。",
+    guestbook_name: "名またはニックネーム",
+    guestbook_city: "市/州（任意）",
+    guestbook_message: "メッセージ",
+    guestbook_submit: "承認のため送信",
+    guestbook_wall: "ライドウォール",
+    guestbook_empty: "承認済みのメッセージはまだありません。最初に投稿しましょう！",
+  },
+
+  hi: {
+    guestbook_title: "एक नोट छोड़ें",
+    guestbook_subtitle: "संदेश ड्राइवर की स्वीकृति के बाद दिखाई देंगे।",
+    guestbook_name: "पहला नाम या उपनाम",
+    guestbook_city: "शहर/राज्य वैकल्पिक",
+    guestbook_message: "आपका संदेश",
+    guestbook_submit: "स्वीकृति के लिए भेजें",
+    guestbook_wall: "राइड वॉल",
+    guestbook_empty: "अभी कोई स्वीकृत नोट नहीं है। पहले बनें!",
+  },
+
 };
 
 export default guestbook;
