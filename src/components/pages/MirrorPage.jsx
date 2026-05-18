@@ -120,48 +120,54 @@ export default function MirrorPage({ t = (key) => key }) {
   }, []);
 
   return (
-    <div className="flex justify-center">
+    <div
+      className={`${
+        active
+          ? "fixed inset-0 z-50 flex items-center justify-center bg-white p-4"
+          : "flex justify-center"
+      }`}
+    >
       <PageCard
-        className={`flex h-[calc(100vh-155px)] min-h-[520px] w-full max-w-[min(96vw,980px)] flex-col overflow-hidden transition-colors duration-300 md:h-[calc(100vh-170px)] ${
-          active ? "bg-white" : ""
-        }`}
+        className={`flex ${
+          active
+            ? "h-full min-h-0 w-full max-w-none rounded-none bg-white shadow-none"
+            : "h-[calc(100vh-155px)] min-h-[520px] w-full max-w-[min(96vw,980px)] md:h-[calc(100vh-170px)]"
+        } flex-col overflow-hidden transition-colors duration-300`}
       >
         {/* ===== PAGE HEADER ===== */}
-        <div className="flex shrink-0 items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className={`${active ? "bg-white" : "bg-slate-100"} rounded-2xl p-3 text-slate-950 shadow-sm`}>
-              {active ? <Camera /> : <CameraOff />}
-            </div>
+        {!active && (
+          <div className="flex shrink-0 items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="rounded-2xl bg-slate-100 p-3 text-slate-950 shadow-sm">
+                <CameraOff />
+              </div>
 
-            <div>
-              <h2 className="text-[clamp(1.5rem,3vw,2.25rem)] font-black leading-tight text-slate-950">
-                {tr("mirror_title", "Mirror")}
-              </h2>
+              <div>
+                <h2 className="text-[clamp(1.5rem,3vw,2.25rem)] font-black leading-tight text-slate-950">
+                  {tr("mirror_title", "Mirror")}
+                </h2>
 
-              <p className="text-sm leading-snug text-slate-600">
-                {active
-                  ? tr("mirror_light_mode", "Light mode is helping brighten your face.")
-                  : tr("mirror_subtitle", "Use the front camera as a quick mirror.")}
-              </p>
+                <p className="text-sm leading-snug text-slate-600">
+                  {tr("mirror_subtitle", "Use the front camera as a quick mirror.")}
+                </p>
+              </div>
             </div>
           </div>
-
-          {active && (
-            <div className="hidden rounded-full bg-white px-4 py-2 text-xs font-black uppercase tracking-[.18em] text-slate-500 shadow-sm sm:block">
-              {tr("mirror_screen_light", "Screen Light")}
-            </div>
-          )}
-        </div>
+        )}
 
         {/* ===== RESPONSIVE MIRROR PREVIEW ===== */}
         <div
-          className={`mt-3 flex min-h-0 flex-1 items-center justify-center rounded-3xl transition-colors duration-300 ${
-            active ? "bg-white p-4" : "bg-transparent"
+          className={`flex min-h-0 flex-1 items-center justify-center transition-colors duration-300 ${
+            active
+              ? "bg-white p-[clamp(1.5rem,6vw,5rem)]"
+              : "mt-3 rounded-3xl bg-transparent"
           }`}
         >
           <div
-            className={`relative h-full w-full overflow-hidden rounded-3xl bg-black ${
-              active ? "shadow-[0_0_60px_rgba(255,255,255,0.95)]" : "shadow-inner"
+            className={`relative overflow-hidden rounded-3xl bg-black ${
+              active
+                ? "h-[min(72vh,720px)] w-[min(78vw,900px)] shadow-[0_0_90px_rgba(255,255,255,1)]"
+                : "h-full w-full shadow-inner"
             }`}
           >
             <video
@@ -194,7 +200,11 @@ export default function MirrorPage({ t = (key) => key }) {
         <button
           type="button"
           onClick={active ? stopMirror : startMirror}
-          className="mt-3 shrink-0 rounded-3xl bg-slate-950 p-3 text-lg font-black text-white shadow-lg"
+          className={`shrink-0 rounded-3xl bg-slate-950 p-3 text-lg font-black text-white shadow-lg ${
+            active
+              ? "fixed bottom-5 left-1/2 z-[60] w-[min(92vw,520px)] -translate-x-1/2"
+              : "mt-3"
+          }`}
         >
           {active
             ? tr("mirror_stop", "Stop Mirror")
