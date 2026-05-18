@@ -81,14 +81,21 @@ export async function createPairingCode({
   deviceLabel = "",
 } = {}) {
   const deviceId = createDeviceId();
+  const deviceToken = createDeviceToken();
   const code = createRandomCode();
+  const normalizedDeviceLabel = String(deviceLabel || "").trim();
+
+  if (!normalizedDeviceLabel) {
+    throw new Error("Device name is required.");
+  }
 
   const pendingDevice = {
     deviceId,
     deviceToken,
     code,
     deviceType,
-    deviceLabel: String(deviceLabel || "").trim(),
+    deviceLabel: normalizedDeviceLabel,
+    deviceName: normalizedDeviceLabel,
     status: "pending",
     configId: "default",
     createdAtMs: Date.now(),
