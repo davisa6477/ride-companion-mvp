@@ -17,6 +17,7 @@ import {
 } from "../../services/developerAccessService.js";
 import { importableComponentKeys } from "../../config/importableGameComponents.jsx";
 import { getImportableComponent } from "../../config/importableGameComponents.jsx";
+import { getCatalogApiStatus } from "../../services/catalogApiService.js";
 
 export default function DeveloperPortalPage({
   importedGameModules = [],
@@ -35,6 +36,9 @@ export default function DeveloperPortalPage({
   const [stagedModules, setStagedModules] = useState([]);
   const [selectedTestId, setSelectedTestId] = useState("");
   const [showArchivedModules, setShowArchivedModules] = useState(false);
+  const [catalogApiStatus, setCatalogApiStatus] = useState(null);
+  const [catalogApiMessage, setCatalogApiMessage] = useState("");
+  const [catalogApiLoading, setCatalogApiLoading] = useState(false);
   const [message, setMessage] = useState("");
 
   const developerSession = getDeveloperSession();
@@ -85,6 +89,22 @@ export default function DeveloperPortalPage({
   function logoutDeveloper() {
     lockDeveloperPortal();
     setUnlocked(false);
+  }
+
+  async function testCatalogApi() {
+    setCatalogApiLoading(true);
+    setCatalogApiMessage("");
+
+    try {
+      const status = await getCatalogApiStatus();
+      setCatalogApiStatus(status);
+      setCatalogApiMessage("Catalog API responded successfully.");
+    } catch (error) {
+      setCatalogApiStatus(null);
+      setCatalogApiMessage(error?.message || "Catalog API request failed.");
+    } finally {
+      setCatalogApiLoading(false);
+    }
   }
 
   function stageManifest() {
@@ -265,6 +285,40 @@ export default function DeveloperPortalPage({
         </header>
 
         <div className="grid gap-5">
+          <PageCard>
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h2 className="text-2xl font-black text-slate-950">
+                  API Foundation
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Phase 31 scaffold for controlled backend calls. This does not replace the existing Firebase/local catalog flow yet.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={testCatalogApi}
+                disabled={catalogApiLoading}
+                className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-black text-white disabled:opacity-50"
+              >
+                {catalogApiLoading ? "Testing..." : "Test Catalog API"}
+              </button>
+            </div>
+
+            {catalogApiMessage && (
+              <div className="mt-3 rounded-2xl bg-slate-100 p-3 text-sm font-bold text-slate-700">
+                {catalogApiMessage}
+              </div>
+            )}
+
+            {catalogApiStatus && (
+              <pre className="mt-3 max-h-56 overflow-auto rounded-2xl bg-slate-950 p-4 text-xs text-white">
+                {JSON.stringify(catalogApiStatus, null, 2)}
+              </pre>
+            )}
+          </PageCard>
+
           <PageCard>
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div>
