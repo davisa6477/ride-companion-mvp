@@ -68,9 +68,13 @@ import {
 export default function App() {
   // ===== ROUTE DETECTION =====
   const pathname = window.location.pathname;
-  const isDriverConsole = pathname === "/console";
-  const isAdminPage = pathname === "/admin";
-  const isPairingPage = pathname === "/pair";
+  const normalizedPathname = pathname.replace(/\/+$/, "") || "/";
+  const hashPathname = window.location.hash?.replace(/^#/, "").replace(/\/+$/, "");
+  const activePathname = hashPathname || normalizedPathname;
+
+  const isDriverConsole = activePathname === "/console";
+  const isAdminPage = activePathname === "/admin";
+  const isPairingPage = activePathname === "/pair";
   const isPassengerPage = !isDriverConsole && !isAdminPage && !isPairingPage;
 
   // ===== FIRESTORE WRITE SCOPE =====
@@ -583,7 +587,11 @@ export default function App() {
             </p>
           </header>
 
-          <PairingPage />
+          <PairingPage
+            defaultDeviceType={DEVICE_TYPES.passengerTablet.id}
+            requiredDeviceType={DEVICE_TYPES.passengerTablet.id}
+            successRedirectPath="/"
+          />
         </div>
       </main>
     );
@@ -612,6 +620,7 @@ export default function App() {
           <PairingPage
             defaultDeviceType={DEVICE_TYPES.driverConsole.id}
             requiredDeviceType={DEVICE_TYPES.driverConsole.id}
+            successRedirectPath="/console"
           />
         </div>
       </main>

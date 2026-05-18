@@ -12,7 +12,11 @@ import {
   saveLocalPairedDevice,
 } from "../../services/devicePairingService.js";
 
-export default function PairingPage({ defaultDeviceType = DEFAULT_DEVICE_TYPE, requiredDeviceType = null }) {
+export default function PairingPage({
+  defaultDeviceType = DEFAULT_DEVICE_TYPE,
+  requiredDeviceType = null,
+  successRedirectPath = null,
+}) {
   const [deviceType, setDeviceType] = useState(defaultDeviceType);
   const [deviceLabel, setDeviceLabel] = useState("");
   const [pairing, setPairing] = useState(null);
@@ -21,6 +25,23 @@ export default function PairingPage({ defaultDeviceType = DEFAULT_DEVICE_TYPE, r
   const [creating, setCreating] = useState(false);
 
   const deviceTypeOptions = useMemo(() => Object.values(DEVICE_TYPES), []);
+  const pairedDeviceMatchesRequired =
+    !requiredDeviceType || pairedDevice?.deviceType === requiredDeviceType;
+  const hasWrongPairedDevice = Boolean(
+    pairedDevice && requiredDeviceType && pairedDevice.deviceType !== requiredDeviceType
+  );
+
+  function getSuccessRedirectPath(localDevice) {
+    if (successRedirectPath) {
+      return successRedirectPath;
+    }
+
+    if (localDevice?.deviceType === DEVICE_TYPES.driverConsole.id) {
+      return "/console";
+    }
+
+    return "/";
+  }
 
   async function startPairing() {
     setMessage("");
@@ -28,7 +49,7 @@ export default function PairingPage({ defaultDeviceType = DEFAULT_DEVICE_TYPE, r
 
     try {
       const nextPairing = await createPairingCode({
-        deviceType,
+        deviceType: requiredDeviceType || deviceType,
         deviceLabel,
       });
 
@@ -71,8 +92,10 @@ export default function PairingPage({ defaultDeviceType = DEFAULT_DEVICE_TYPE, r
         setPairedDevice(localDevice);
         setMessage("Device paired successfully. Loading paired app...");
 
+        const redirectPath = getSuccessRedirectPath(localDevice);
+
         window.setTimeout(() => {
-          window.location.href = "/";
+          window.location.assign(redirectPath);
         }, 900);
       }
 
@@ -82,7 +105,7 @@ export default function PairingPage({ defaultDeviceType = DEFAULT_DEVICE_TYPE, r
     });
 
     return () => unsubscribe();
-  }, [pairing?.code]);
+  }, [pairing?.code, requiredDeviceType, successRedirectPath]);
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -102,7 +125,7 @@ export default function PairingPage({ defaultDeviceType = DEFAULT_DEVICE_TYPE, r
           </div>
         </div>
 
-        {pairedDevice ? (
+        {pairedDevice && pairedDeviceMatchesRequired ? (
           <div className="mt-5 grid gap-4">
             <div className="rounded-3xl bg-emerald-50 p-5 text-emerald-900">
               <div className="text-lg font-black">Device Paired</div>
@@ -123,6 +146,25 @@ export default function PairingPage({ defaultDeviceType = DEFAULT_DEVICE_TYPE, r
           </div>
         ) : (
           <div className="mt-5 grid gap-4">
+            {hasWrongPairedDevice && (
+              <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
+                <div className="font-black">Wrong device type paired</div>
+                <p className="mt-1 text-sm">
+                  This browser is currently paired as{" "}
+                  {DEVICE_TYPES[pairedDevice.deviceType]?.label ||
+                    pairedDevice.deviceType}
+                  , but this page requires{" "}
+                  {DEVICE_TYPES[requiredDeviceType]?.label || requiredDeviceType}.
+                </p>
+                <button
+                  type="button"
+                  onClick={forgetPairing}
+                  className="mt-3 rounded-xl bg-amber-500 px-4 py-2 text-sm font-black text-amber-950"
+                >
+                  Clear wrong pairing
+                </button>
+              </div>
+            )}
             <div className="grid gap-3 rounded-3xl border border-slate-200 p-4">
               <label className="text-sm font-black text-slate-700">
                 Device Type
