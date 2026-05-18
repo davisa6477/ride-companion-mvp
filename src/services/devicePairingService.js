@@ -226,6 +226,22 @@ export async function cleanupPairingCodesForDevice(deviceId) {
   return deletePairingCodesForDevice(deviceId);
 }
 
+export async function clearAllPairingCodes() {
+  const snapshot = await getDocs(collection(db, PAIRING_CODES_COLLECTION));
+
+  if (snapshot.empty) return 0;
+
+  const batch = writeBatch(db);
+
+  snapshot.docs.forEach((codeDoc) => {
+    batch.delete(codeDoc.ref);
+  });
+
+  await batch.commit();
+
+  return snapshot.size;
+}
+
 export function listenToPairedDevices(callback, onError) {
   return onSnapshot(
     collection(db, PAIRED_DEVICES_COLLECTION),

@@ -11,6 +11,7 @@ import { securityStatus } from "../../config/securityStatus.js";
 import { DEVICE_TYPES } from "../../config/deviceTypes.js";
 import {
   approvePairingCode,
+  clearAllPairingCodes,
   listenToPairedDevices,
   listenToPendingPairingCodes,
   removePairedDevice,
@@ -513,6 +514,23 @@ export default function AdminPage({
       setPairingMessage("Paired device and related pairing codes removed.");
     } catch (error) {
       setPairingMessage(error?.message || "Could not remove paired device.");
+    }
+  }
+
+  async function clearPairingCodeList() {
+    setPairingMessage("");
+
+    const confirmed = window.confirm(
+      "Clear all pairing codes? This will not remove already paired devices."
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const removedCount = await clearAllPairingCodes();
+      setPairingMessage(`Cleared ${removedCount} pairing code${removedCount === 1 ? "" : "s"}.`);
+    } catch (error) {
+      setPairingMessage(error?.message || "Could not clear pairing codes.");
     }
   }
 
@@ -1322,6 +1340,27 @@ export default function AdminPage({
                 <p className="text-sm text-slate-500">
                   Approve passenger tablets or driver consoles without putting Admin credentials on those devices.
                 </p>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="font-black text-slate-950">
+                    Pairing Code Cleanup
+                  </div>
+                  <p className="text-sm text-slate-500">
+                    Clears old pending/approved/rejected pairing codes before a fresh test. Paired devices are not removed.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={clearPairingCodeList}
+                  className="rounded-xl bg-rose-100 px-4 py-2 text-sm font-black text-rose-700 hover:bg-rose-200"
+                >
+                  Clear Pairing Codes
+                </button>
               </div>
             </div>
 
