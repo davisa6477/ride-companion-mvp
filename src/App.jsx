@@ -46,6 +46,11 @@ import {
   listenToSharedAds,
   saveSharedAds,
 } from "./services/firestoreAdsService.js";
+import {
+  getSharedDriverProfile,
+  listenToSharedDriverProfile,
+  saveSharedDriverProfile,
+} from "./services/firestoreDriverProfileService.js";
 
 export default function App() {
   // ===== ROUTE DETECTION =====
@@ -83,6 +88,7 @@ export default function App() {
   const lastSharedAppSettingsJsonRef = useRef("");
   const lastSharedGuestbookEntriesJsonRef = useRef("");
   const lastSharedAdsJsonRef = useRef("");
+  const lastSharedDriverProfileJsonRef = useRef("");
 
   // ===== GUESTBOOK STATE =====
   const [entries, setEntries] = useState(() => initialAdminContent.entries);
@@ -119,7 +125,6 @@ export default function App() {
     return {
       adminPin: sharedContent.adminPin || adminPin,
       requestCategories: sharedContent.requestCategories || {},
-      driverProfile: sharedContent.driverProfile || driverProfile,
       tipOptions: sharedContent.tipOptions || [],
     };
   }
@@ -132,7 +137,6 @@ export default function App() {
 
     setAdminPin(normalizedContent.adminPin);
     setRequestCategories(normalizedContent.requestCategories);
-    setDriverProfile(normalizedContent.driverProfile);
     setTipOptions(normalizedContent.tipOptions);
   }
 
@@ -163,6 +167,15 @@ export default function App() {
     setAds(sharedAds);
   }
 
+  function applySharedDriverProfile(sharedProfile) {
+    if (!sharedProfile) return;
+
+    lastSharedDriverProfileJsonRef.current =
+      JSON.stringify(sharedProfile);
+
+    setDriverProfile(sharedProfile);
+  }
+
   // ===== OPTIONAL FIRESTORE INITIAL LOAD =====
   // Local storage is still the immediate fallback. If shared Firestore content
   // exists, it replaces the local initial state after the app mounts.
@@ -171,13 +184,19 @@ export default function App() {
 
     async function loadSharedState() {
       try {
-        const [sharedContent, sharedSettings, sharedGuestbookEntries, sharedAds] =
-          await Promise.all([
-            loadSharedAdminContent(),
-            loadSharedAppSettings(),
-            getSharedGuestbookEntries(),
-            getSharedAds(),
-          ]);
+        const [
+          sharedContent,
+          sharedSettings,
+          sharedGuestbookEntries,
+          sharedAds,
+          sharedDriverProfile,
+        ] = await Promise.all([
+          loadSharedAdminContent(),
+          loadSharedAppSettings(),
+          getSharedGuestbookEntries(),
+          getSharedAds(),
+          getSharedDriverProfile(),
+        ]);
 
         if (!mounted) return;
 
@@ -195,6 +214,10 @@ export default function App() {
 
         if (Array.isArray(sharedAds) && sharedAds.length > 0) {
           applySharedAds(sharedAds);
+        }
+
+        if (sharedDriverProfile) {
+          applySharedDriverProfile(sharedDriverProfile);
         }
       } catch (error) {
         console.error("Failed to load shared Firestore state:", error);
@@ -243,11 +266,18 @@ export default function App() {
       setSharedStateReady(true);
     });
 
+    const unsubscribeDriverProfile = listenToSharedDriverProfile((sharedProfile) => {
+      if (!sharedProfile) return;
+      applySharedDriverProfile(sharedProfile);
+      setSharedStateReady(true);
+    });
+
     return () => {
       if (unsubscribeContent) unsubscribeContent();
       if (unsubscribeSettings) unsubscribeSettings();
       if (unsubscribeGuestbook) unsubscribeGuestbook();
       if (unsubscribeAds) unsubscribeAds();
+      if (unsubscribeDriverProfile) unsubscribeDriverProfile();
     };
     // Run once. Helper functions intentionally use current state fallbacks.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -272,7 +302,18 @@ export default function App() {
   // ===== DRIVER PROFILE PERSISTENCE =====
   useEffect(() => {
     saveDriverProfile(driverProfile);
-  }, [driverProfile]);
+
+    if (!sharedStateReady || !canWriteFullAdminContent) return;
+
+    const driverProfileJson = JSON.stringify(driverProfile);
+
+    if (driverProfileJson === lastSharedDriverProfileJsonRef.current) {
+      return;
+    }
+
+    lastSharedDriverProfileJsonRef.current = driverProfileJson;
+    saveSharedDriverProfile(driverProfile);
+  }, [driverProfile, sharedStateReady, canWriteFullAdminContent]);
 
   // ===== TIP OPTIONS PERSISTENCE =====
   useEffect(() => {
@@ -322,15 +363,15 @@ export default function App() {
   }, [adminPin]);
 
   // ===== SHARED FIRESTORE ADMIN CONTENT SNAPSHOT =====
-  // Guestbook entries and ads now sync through their own Firestore services.
-  // This snapshot is admin-only and contains remaining non-containerized admin content.
+  // Guestbook entries, ads, and driver profile now sync through their own
+  // Firestore services. This snapshot is admin-only and contains remaining
+  // non-containerized admin content.
   useEffect(() => {
     if (!sharedStateReady || !canWriteFullAdminContent) return;
 
     const contentSnapshot = {
       adminPin,
       requestCategories,
-      driverProfile,
       tipOptions,
     };
 
@@ -345,7 +386,6 @@ export default function App() {
   }, [
     adminPin,
     requestCategories,
-    driverProfile,
     tipOptions,
     sharedStateReady,
     canWriteFullAdminContent,

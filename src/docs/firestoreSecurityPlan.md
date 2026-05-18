@@ -23,13 +23,14 @@ Used for:
 
 ```txt
 adminConfig/content
+adminConfig/profile
 adminConfig/settings
 guestbookEntries/{entryId}
 ads/{adId}
 ```
 
 Used for:
-- driver profile,
+- driver profile in its own profile document,
 - ads/deals in a separate ads container,
 - tip options,
 - request categories,
@@ -114,3 +115,14 @@ ads/{adId}
 ```
 
 This lets Admin add, delete, and toggle ads independently from profile/settings-style content. It also prepares future rules where only Admin can write ads while passengers can read active deals.
+
+
+## Driver Profile Container Status
+
+Driver profile has been split out of the combined adminConfig/content snapshot into:
+
+```txt
+adminConfig/profile
+```
+
+This lets profile edits sync independently from request categories, tip options, and admin PIN.
