@@ -14,6 +14,7 @@ import MirrorPage from "./components/pages/MirrorPage.jsx";
 import TranslationPage from "./components/pages/TranslationPage.jsx";
 import PairingPage from "./components/pages/PairingPage.jsx";
 import AdminPage from "./components/admin/AdminPage.jsx";
+import DeveloperPortalPage from "./components/developer/DeveloperPortalPage.jsx";
 import DriverConsolePage from "./components/console/DriverConsolePage.jsx";
 
 import { createTranslator } from "./data/translations.js";
@@ -72,6 +73,7 @@ import {
   listenToSharedGameModuleSettings,
   loadGameModuleSettings,
   saveGameModuleSettings,
+  normalizeGameModuleSettings,
   saveSharedGameModuleSettings,
 } from "./services/gameModuleSettingsService.js";
 import {
@@ -91,14 +93,16 @@ export default function App() {
 
   const isDriverConsole = activePathname === "/console";
   const isAdminPage = activePathname === "/admin";
+  const isDeveloperPage = activePathname === "/developer";
   const isPairingPage = activePathname === "/pair";
-  const isPassengerPage = !isDriverConsole && !isAdminPage && !isPairingPage;
+  const isPassengerPage =
+    !isDriverConsole && !isAdminPage && !isDeveloperPage && !isPairingPage;
 
   // ===== FIRESTORE WRITE SCOPE =====
   // Until Firebase Auth/security rules are added, shared Firestore writes are
   // intentionally route-scoped. Admin can write full shared content/settings.
   // Passenger pages can only write guestbook entries in the separate guestbook container.
-  const canWriteFullAdminContent = isAdminPage;
+  const canWriteFullAdminContent = isAdminPage || isDeveloperPage;
   const canWriteAppSettings = isAdminPage;
   const canWriteGuestbookEntries = isAdminPage || isPassengerPage;
 
@@ -799,6 +803,19 @@ export default function App() {
     return <DriverConsolePage />;
   }
 
+  // ===== DEVELOPER ROUTE =====
+  if (isDeveloperPage) {
+    return (
+      <DeveloperPortalPage
+        importedGameModules={importedGameModules}
+        setImportedGameModules={setImportedGameModules}
+        gameModuleSettings={gameModuleSettings}
+        setGameModuleSettings={setGameModuleSettings}
+        normalizeGameModuleSettings={normalizeGameModuleSettings}
+      />
+    );
+  }
+
   // ===== ADMIN ROUTE =====
   if (isAdminPage) {
     return (
@@ -832,7 +849,6 @@ export default function App() {
             gameModuleSettings={gameModuleSettings}
             setGameModuleSettings={setGameModuleSettings}
             importedGameModules={importedGameModules}
-            setImportedGameModules={setImportedGameModules}
           />
         </div>
       </main>
