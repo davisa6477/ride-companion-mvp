@@ -20,6 +20,7 @@ import { setPassengerLanguage } from "./services/rideSessionService.js";
 import {
   loadAdminContent,
   loadSharedAdminContent,
+  saveSharedAdminContentSnapshot,
   saveDriverProfile,
   saveTipOptions,
   saveAds,
@@ -30,6 +31,7 @@ import {
 import {
   loadAppSettings,
   loadSharedAppSettings,
+  saveSharedAppSettingsSnapshot,
   saveAppSettings,
 } from "./services/appSettingsService.js";
 
@@ -51,6 +53,11 @@ export default function App() {
 
   // ===== APP SETTINGS STATE =====
   const [appSettings, setAppSettings] = useState(() => initialAppSettings);
+
+  // ===== FIRESTORE SYNC STATE =====
+  // Prevents the local fallback/default state from overwriting Firestore before
+  // the initial shared load attempt finishes.
+  const [sharedStateReady, setSharedStateReady] = useState(false);
 
   // ===== GUESTBOOK STATE =====
   const [entries, setEntries] = useState(() => initialAdminContent.entries);
@@ -111,6 +118,10 @@ export default function App() {
         }
       } catch (error) {
         console.error("Failed to load shared Firestore state:", error);
+      } finally {
+        if (mounted) {
+          setSharedStateReady(true);
+        }
       }
     }
 
@@ -126,7 +137,11 @@ export default function App() {
   // ===== APP SETTINGS PERSISTENCE =====
   useEffect(() => {
     saveAppSettings(appSettings);
-  }, [appSettings]);
+
+    if (!sharedStateReady) return;
+
+    saveSharedAppSettingsSnapshot(appSettings);
+  }, [appSettings, sharedStateReady]);
 
   // ===== DRIVER PROFILE PERSISTENCE =====
   useEffect(() => {
@@ -157,6 +172,31 @@ export default function App() {
   useEffect(() => {
     saveAdminPin(adminPin);
   }, [adminPin]);
+
+  // ===== SHARED FIRESTORE ADMIN CONTENT SNAPSHOT =====
+  // Local saves above remain the immediate fallback. Once the initial shared
+  // load attempt finishes, any admin-managed content change writes one combined
+  // snapshot to Firestore for other devices to load later.
+  useEffect(() => {
+    if (!sharedStateReady) return;
+
+    saveSharedAdminContentSnapshot({
+      entries,
+      ads,
+      adminPin,
+      requestCategories,
+      driverProfile,
+      tipOptions,
+    });
+  }, [
+    entries,
+    ads,
+    adminPin,
+    requestCategories,
+    driverProfile,
+    tipOptions,
+    sharedStateReady,
+  ]);
 
   // ===== PASSENGER SCREEN AUTO-RESET =====
   useEffect(() => {
