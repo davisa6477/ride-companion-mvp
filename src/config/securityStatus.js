@@ -8,7 +8,7 @@ export const securityStatus = {
   severity: "warning",
   title: "MVP Security Notice",
   message:
-    "Firebase Admin sign-in is now required before the local PIN can unlock Admin. Firestore rules still need to be tightened so the backend enforces the same protection.",
+    "Firebase Admin sign-in protects backend writes, and the local PIN acts as a secondary screen lock for this browser. Paired devices can be removed from Admin and will be deactivated automatically.",
   nextStep:
-    "Next production step: publish restrictive Firestore rules so protected writes require Firebase Auth on the backend.",
+    "Beta checklist: keep Firebase rules current, verify device pairing/removal, and use the local PIN as a secondary lock—not primary security.",
 };

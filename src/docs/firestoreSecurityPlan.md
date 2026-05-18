@@ -205,3 +205,24 @@ src/docs/firestoreRulesPhase18FPairedDeviceDraft.rules
 ```
 
 This draft is still conservative and should be reviewed before publishing.
+
+
+## Phase 19 Beta Cleanup Status
+
+The current beta security model is:
+
+```txt
+Firebase Auth = Admin backend identity
+Local PIN = secondary Admin screen lock
+Paired devices = approved passenger tablet / driver console browsers
+deviceToken = validation value shared by local paired device and pairedDevices/{deviceId}
+```
+
+The latest rules draft is stored in:
+
+```txt
+src/firestore.rules
+src/docs/firestoreRulesBetaCurrent.rules
+```
+
+The local PIN should remain as a secondary lock for now, but it is not the primary backend security mechanism.
