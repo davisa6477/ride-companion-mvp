@@ -1,4 +1,5 @@
 import {
+  createUserWithEmailAndPassword,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut,
@@ -19,6 +20,17 @@ export function listenToFirebaseAdminAuth(callback) {
 
 export async function signInFirebaseAdmin(email, password) {
   const credential = await signInWithEmailAndPassword(
+    auth,
+    String(email || "").trim(),
+    password
+  );
+
+  return credential.user;
+}
+
+
+export async function createFirebaseAdminUser(email, password) {
+  const credential = await createUserWithEmailAndPassword(
     auth,
     String(email || "").trim(),
     password

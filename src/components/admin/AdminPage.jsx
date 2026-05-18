@@ -15,6 +15,7 @@ import {
   verifyAdminPin,
 } from "../../services/adminAuthService.js";
 import {
+  createFirebaseAdminUser,
   getFirebaseAdminEmail,
   listenToFirebaseAdminAuth,
   signInFirebaseAdmin,
@@ -116,6 +117,12 @@ export default function AdminPage({
   const [firebaseEmail, setFirebaseEmail] = useState("");
   const [firebasePassword, setFirebasePassword] = useState("");
   const [firebaseAuthError, setFirebaseAuthError] = useState("");
+  const [showFirebaseSetup, setShowFirebaseSetup] = useState(false);
+  const [setupEmail, setSetupEmail] = useState("");
+  const [setupPassword, setSetupPassword] = useState("");
+  const [setupConfirmPassword, setSetupConfirmPassword] = useState("");
+  const [setupLocalPin, setSetupLocalPin] = useState("");
+  const [setupMessage, setSetupMessage] = useState("");
 
   // ===== ADMIN SECTION STATE =====
   // Keeps the admin interface separated into simple internal pages instead of
@@ -328,6 +335,44 @@ export default function AdminPage({
   }, [unlocked, sessionExpiresAt]);
 
   // ===== FIREBASE ADMIN AUTH FUNCTIONS =====
+  async function createAdminIdentity(e) {
+    e.preventDefault();
+    setFirebaseAuthError("");
+    setSetupMessage("");
+
+    if (setupLocalPin !== adminPin) {
+      setSetupMessage("Local Admin PIN is required to create the Firebase Admin account.");
+      return;
+    }
+
+    if (!setupEmail.trim()) {
+      setSetupMessage("Enter an admin email address.");
+      return;
+    }
+
+    if (setupPassword.length < 6) {
+      setSetupMessage("Firebase password must be at least 6 characters.");
+      return;
+    }
+
+    if (setupPassword !== setupConfirmPassword) {
+      setSetupMessage("Password entries do not match.");
+      return;
+    }
+
+    try {
+      await createFirebaseAdminUser(setupEmail, setupPassword);
+      setFirebaseEmail(setupEmail);
+      setSetupPassword("");
+      setSetupConfirmPassword("");
+      setSetupLocalPin("");
+      setSetupMessage("Firebase Admin account created and signed in.");
+      setShowFirebaseSetup(false);
+    } catch (error) {
+      setSetupMessage(error?.message || "Could not create Firebase Admin account.");
+    }
+  }
+
   async function signInAdminIdentity(e) {
     e.preventDefault();
     setFirebaseAuthError("");
@@ -535,7 +580,7 @@ export default function AdminPage({
   // ===== LOCKED ADMIN LOGIN SCREEN =====
   if (!unlocked) {
     return (
-      <div className="mx-auto grid max-w-md gap-4">
+      <div className="mx-auto grid max-w-2xl gap-4">
         <PageCard>
           <div className="mb-4 flex items-center gap-3">
             <div className="rounded-2xl bg-slate-100 p-3">
@@ -547,22 +592,81 @@ export default function AdminPage({
                 Driver Admin
               </h2>
               <p className="text-sm text-slate-500">
-                Firebase Admin identity plus local PIN gate.
+                Firebase Admin setup/sign-in plus local PIN unlock.
               </p>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <div className="text-sm font-black text-slate-700">
-              Firebase Admin Identity
-            </div>
+          <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4">
+            <h3 className="text-xl font-black text-amber-950">
+              First-time Firebase Admin Setup
+            </h3>
+
+            <p className="mt-1 text-sm text-amber-900">
+              Use this once to create the Admin email/password account after
+              enabling Email/Password in Firebase Authentication.
+            </p>
+
+            <form onSubmit={createAdminIdentity} className="mt-4 grid gap-3">
+              <input
+                value={setupEmail}
+                onChange={(e) => setSetupEmail(e.target.value)}
+                placeholder="New admin email"
+                type="email"
+                autoComplete="username"
+                className="rounded-2xl border border-amber-200 bg-white p-3 outline-none focus:ring-4 focus:ring-amber-100"
+              />
+
+              <input
+                value={setupPassword}
+                onChange={(e) => setSetupPassword(e.target.value)}
+                placeholder="New admin password"
+                type="password"
+                autoComplete="new-password"
+                className="rounded-2xl border border-amber-200 bg-white p-3 outline-none focus:ring-4 focus:ring-amber-100"
+              />
+
+              <input
+                value={setupConfirmPassword}
+                onChange={(e) => setSetupConfirmPassword(e.target.value)}
+                placeholder="Confirm new admin password"
+                type="password"
+                autoComplete="new-password"
+                className="rounded-2xl border border-amber-200 bg-white p-3 outline-none focus:ring-4 focus:ring-amber-100"
+              />
+
+              <input
+                value={setupLocalPin}
+                onChange={(e) => setSetupLocalPin(e.target.value)}
+                placeholder="Current local Admin PIN"
+                type="password"
+                inputMode="numeric"
+                className="rounded-2xl border border-amber-200 bg-white p-3 outline-none focus:ring-4 focus:ring-amber-100"
+              />
+
+              <button className="rounded-2xl bg-amber-500 p-3 font-black text-amber-950 shadow">
+                Create Firebase Admin Account
+              </button>
+
+              {setupMessage && (
+                <div className="rounded-2xl bg-white p-3 text-sm font-bold text-amber-950">
+                  {setupMessage}
+                </div>
+              )}
+            </form>
+          </div>
+
+          <div className="mt-4 rounded-3xl border border-slate-200 bg-slate-50 p-4">
+            <h3 className="text-xl font-black text-slate-950">
+              Firebase Admin Sign-In
+            </h3>
 
             {firebaseAuthLoading ? (
               <p className="mt-2 text-sm text-slate-500">
                 Checking Firebase sign-in...
               </p>
             ) : firebaseUser ? (
-              <div className="mt-2 grid gap-3">
+              <div className="mt-3 grid gap-3">
                 <div className="rounded-xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">
                   Signed in as {firebaseAdminEmail}
                 </div>
@@ -582,7 +686,8 @@ export default function AdminPage({
                   onChange={(e) => setFirebaseEmail(e.target.value)}
                   placeholder="Admin email"
                   type="email"
-                  className="rounded-2xl border border-slate-200 p-3 outline-none focus:ring-4 focus:ring-slate-200"
+                  autoComplete="username"
+                  className="rounded-2xl border border-slate-200 bg-white p-3 outline-none focus:ring-4 focus:ring-slate-200"
                 />
 
                 <input
@@ -590,7 +695,8 @@ export default function AdminPage({
                   onChange={(e) => setFirebasePassword(e.target.value)}
                   placeholder="Admin password"
                   type="password"
-                  className="rounded-2xl border border-slate-200 p-3 outline-none focus:ring-4 focus:ring-slate-200"
+                  autoComplete="current-password"
+                  className="rounded-2xl border border-slate-200 bg-white p-3 outline-none focus:ring-4 focus:ring-slate-200"
                 />
 
                 <button className="rounded-2xl bg-slate-950 p-3 font-black text-white">
@@ -604,14 +710,13 @@ export default function AdminPage({
                 {firebaseAuthError}
               </div>
             )}
-
-            <p className="mt-3 text-xs text-slate-500">
-              Phase 17A adds Firebase Auth support, but Firestore rules are not
-              tightened yet. The local PIN remains active during transition.
-            </p>
           </div>
 
           <form onSubmit={unlock} className="mt-4 grid gap-3">
+            <h3 className="text-xl font-black text-slate-950">
+              Local PIN Unlock
+            </h3>
+
             <input
               value={pin}
               onChange={(e) => setPin(e.target.value)}
@@ -638,8 +743,8 @@ export default function AdminPage({
             </button>
 
             <p className="text-sm text-slate-500">
-              The PIN is still the beta local lock. Firebase Auth is now
-              available as the backend identity layer for the next rules pass.
+              The local PIN remains active during this transition. Firebase Auth
+              will protect Firestore writes after the rules phase.
             </p>
           </form>
         </PageCard>
