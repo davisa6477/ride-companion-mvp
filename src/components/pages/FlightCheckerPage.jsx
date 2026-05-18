@@ -6,6 +6,7 @@ import React, { useMemo, useState } from "react";
 import { Plane, QrCode } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import PageCard from "../layout/PageCard.jsx";
+import { PAGE_FRAME_CLASS } from "../../config/pageFrame.js";
 
 export default function FlightCheckerPage({ t = (key) => key }) {
   // ===== FLIGHT INPUT STATE =====
@@ -55,9 +56,9 @@ export default function FlightCheckerPage({ t = (key) => key }) {
   }
 
   return (
-    <PageCard className="min-h-[520px]">
+    <PageCard className={`${PAGE_FRAME_CLASS} flex min-h-0 flex-col overflow-hidden`}>
       {/* ===== PAGE HEADER ===== */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="shrink-0 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-3">
           <div className="rounded-2xl bg-slate-100 p-3">
             <Plane />
@@ -78,9 +79,9 @@ export default function FlightCheckerPage({ t = (key) => key }) {
         </div>
       </div>
 
-      <div className="mt-8 grid gap-5 lg:grid-cols-[1fr_.85fr]">
+      <div className="mt-5 grid min-h-0 flex-1 gap-5 overflow-y-auto pr-1 lg:grid-cols-[1fr_.85fr]">
         {/* ===== FLIGHT INPUT PANEL ===== */}
-        <div className="rounded-3xl bg-slate-950 p-6 text-white">
+        <div className="min-w-0 rounded-3xl bg-slate-950 p-6 text-white">
           <div className="text-sm font-bold uppercase tracking-wide text-white/50">
             {tr("flights_qr_title", "Flight status QR")}
           </div>
@@ -120,7 +121,7 @@ export default function FlightCheckerPage({ t = (key) => key }) {
         </div>
 
         {/* ===== QR DISPLAY PANEL ===== */}
-        <div className="rounded-3xl bg-slate-100 p-6">
+        <div className="min-w-0 rounded-3xl bg-slate-100 p-6">
           {flightUrl ? (
             <div className="flex flex-col items-center text-center">
               <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-black text-slate-600 shadow">

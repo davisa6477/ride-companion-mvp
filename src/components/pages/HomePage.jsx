@@ -49,51 +49,55 @@ export default function HomePage({
           animate={{ opacity: 1, y: 0 }}
           className="flex h-full min-h-0 flex-col justify-between"
         >
-          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
-              <ShieldCheck size={18} />
-              {tr("home_welcome_badge", "Welcome to your ride")}
+          <div className="min-h-0 flex-1">
+            <div className="shrink-0">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+                <ShieldCheck size={18} />
+                {tr("home_welcome_badge", "Welcome to your ride")}
+              </div>
+
+              <div className="grid gap-5 md:grid-cols-[auto_1fr] md:items-center">
+                <div className="flex h-36 w-36 items-center justify-center overflow-hidden rounded-3xl bg-slate-200 shadow-inner">
+                  {driverProfile.photo ? (
+                    <img
+                      src={driverProfile.photo}
+                      alt="Driver profile"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <ShieldCheck size={56} className="text-slate-400" />
+                  )}
+                </div>
+
+                <div>
+                  <h1 className="text-4xl font-black tracking-tight text-slate-950 xl:text-5xl">
+                    {tr("home_meet", "Meet")}{" "}
+                    {driverProfile.name || tr("home_driver", "Your Driver")}
+                  </h1>
+                </div>
+              </div>
             </div>
 
-            <div className="grid gap-5 md:grid-cols-[auto_1fr] md:items-center">
-              <div className="flex h-36 w-36 items-center justify-center overflow-hidden rounded-3xl bg-slate-200 shadow-inner">
-                {driverProfile.photo ? (
-                  <img
-                    src={driverProfile.photo}
-                    alt="Driver profile"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <ShieldCheck size={56} className="text-slate-400" />
-                )}
-              </div>
+            <div className="mt-4 max-h-[calc(100%-12rem)] overflow-y-auto pr-1">
+              <p className="max-w-2xl text-lg leading-relaxed text-slate-700 xl:text-xl">
+                {translatedBio ||
+                  tr(
+                    "home_default_bio",
+                    "Relax, play some trivia, check out local deals, or leave a note in the guestbook."
+                  )}
+              </p>
 
-              <div>
-                <h1 className="text-4xl font-black tracking-tight text-slate-950 xl:text-5xl">
-                  {tr("home_meet", "Meet")}{" "}
-                  {driverProfile.name || tr("home_driver", "Your Driver")}
-                </h1>
-
-                <p className="mt-4 max-w-2xl text-lg leading-relaxed text-slate-700 xl:text-xl">
-                  {translatedBio ||
-                    tr(
-                      "home_default_bio",
-                      "Relax, play some trivia, check out local deals, or leave a note in the guestbook."
-                    )}
-                </p>
-
-                {translatedLocalTip && (
-                  <div className="mt-4 rounded-2xl bg-slate-950 p-4 text-white">
-                    <div className="text-xs font-bold uppercase tracking-wide text-white/50">
-                      {tr("home_local_tip", "Driver's local tip")}
-                    </div>
-
-                    <div className="mt-1 font-bold">
-                      {translatedLocalTip}
-                    </div>
+              {translatedLocalTip && (
+                <div className="mt-4 rounded-2xl bg-slate-950 p-4 text-white">
+                  <div className="text-xs font-bold uppercase tracking-wide text-white/50">
+                    {tr("home_local_tip", "Driver's local tip")}
                   </div>
-                )}
-              </div>
+
+                  <div className="mt-1 font-bold">
+                    {translatedLocalTip}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

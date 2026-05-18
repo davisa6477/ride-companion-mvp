@@ -259,11 +259,10 @@ export default function LocalPage({ t = (key) => key, appSettings = {} }) {
         </div>
       </div>
 
-      <div className="mt-5 min-h-0 flex-1 overflow-y-auto pr-1">
-        <div className="grid gap-5 lg:grid-cols-[.95fr_1.05fr]">
+      <div className="mt-5 grid min-h-0 flex-1 gap-5 overflow-hidden lg:grid-cols-[.95fr_1.05fr]">
         {/* ===== CATEGORY CARDS ===== */}
-        <div className="grid gap-3">
-          <div className="grid gap-3 sm:grid-cols-2">
+        <div className="min-h-0 overflow-y-auto pr-1">
+          <div className="grid content-start gap-3 sm:grid-cols-2">
             {localCategories.map((category) => {
               const active = selectedCategory.id === category.id;
 
@@ -294,17 +293,17 @@ export default function LocalPage({ t = (key) => key, appSettings = {} }) {
         </div>
 
         {/* ===== QR SEARCH PANEL ===== */}
-        <div className="rounded-3xl bg-slate-950 p-6 text-white">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-3xl bg-slate-950 p-5 text-white">
           <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-white/50">
             <Search size={16} />
             {tr("local_phone_search", "Search with your phone")}
           </div>
 
-          <h3 className="mt-3 text-3xl font-black leading-tight">
+          <h3 className="mt-3 text-2xl font-black leading-tight xl:text-3xl">
             {selectedCategory.label} {locationLabel}
           </h3>
 
-          <p className="mt-3 text-white/70">
+          <p className="mt-2 text-sm text-white/70 xl:text-base">
             {tr(
               "local_pick_search",
               "Pick a search type, then scan the QR code with your phone."
@@ -312,7 +311,7 @@ export default function LocalPage({ t = (key) => key, appSettings = {} }) {
           </p>
 
           {/* ===== SEARCH TYPE BUTTONS ===== */}
-          <div className="mt-5 grid gap-2 sm:grid-cols-2">
+          <div className="mt-4 grid shrink-0 gap-2 sm:grid-cols-2">
             {selectedCategory.searches.map((search) => (
               <button
                 key={search.value}
@@ -330,14 +329,14 @@ export default function LocalPage({ t = (key) => key, appSettings = {} }) {
           </div>
 
           {/* ===== QR CODE ===== */}
-          <div className="mt-6 flex flex-col items-center rounded-3xl bg-white p-6 text-slate-950">
-            <QRCodeSVG value={searchUrl} size={220} />
+          <div className="mt-4 flex min-h-0 flex-1 flex-col items-center justify-center rounded-3xl bg-white p-4 text-slate-950">
+            <QRCodeSVG value={searchUrl} size={200} />
 
-            <div className="mt-4 text-center text-xl font-black">
+            <div className="mt-3 text-center text-lg font-black xl:text-xl">
               {selectedSearchLabel} {locationLabel}
             </div>
 
-            <p className="mt-2 text-center text-sm text-slate-600">
+            <p className="mt-2 text-center text-xs text-slate-600 xl:text-sm">
               {tr(
                 "local_privacy",
                 "For convenience and privacy, scan with your phone to continue."
@@ -353,7 +352,6 @@ export default function LocalPage({ t = (key) => key, appSettings = {} }) {
               )}
             </div>
           )}
-        </div>
         </div>
       </div>
     </PageCard>
