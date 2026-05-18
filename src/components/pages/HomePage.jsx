@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { MessageSquareHeart, QrCode, ShieldCheck, Store } from "lucide-react";
 import PageCard from "../layout/PageCard.jsx";
 import TipModal from "../shared/TipModal.jsx";
+import { PAGE_FRAME_CLASS } from "../../config/pageFrame.js";
 
 export default function HomePage({
   setPage,
@@ -40,15 +41,15 @@ export default function HomePage({
     driverProfile.localTip;
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[1.2fr_.8fr]">
+    <div className={`grid gap-5 lg:grid-cols-[1.2fr_.8fr] ${PAGE_FRAME_CLASS}`}>
       {/* ===== DRIVER WELCOME CARD ===== */}
-      <PageCard className="min-h-[430px] bg-gradient-to-br from-white to-slate-100">
+      <PageCard className="flex h-full min-h-0 flex-col overflow-hidden bg-gradient-to-br from-white to-slate-100">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex h-full flex-col justify-between"
+          className="flex h-full min-h-0 flex-col justify-between"
         >
-          <div>
+          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
               <ShieldCheck size={18} />
               {tr("home_welcome_badge", "Welcome to your ride")}
@@ -68,12 +69,12 @@ export default function HomePage({
               </div>
 
               <div>
-                <h1 className="text-5xl font-black tracking-tight text-slate-950">
+                <h1 className="text-4xl font-black tracking-tight text-slate-950 xl:text-5xl">
                   {tr("home_meet", "Meet")}{" "}
                   {driverProfile.name || tr("home_driver", "Your Driver")}
                 </h1>
 
-                <p className="mt-4 max-w-2xl text-xl leading-relaxed text-slate-700">
+                <p className="mt-4 max-w-2xl text-lg leading-relaxed text-slate-700 xl:text-xl">
                   {translatedBio ||
                     tr(
                       "home_default_bio",
@@ -97,7 +98,7 @@ export default function HomePage({
           </div>
 
           {/* ===== HOME QUICK ACTION BUTTONS ===== */}
-          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <div className="mt-5 grid shrink-0 gap-3 sm:grid-cols-3">
             <button
               onClick={() => setPage("guestbook")}
               className="rounded-2xl bg-slate-950 p-4 text-left text-white shadow-lg"
@@ -146,9 +147,9 @@ export default function HomePage({
         </motion.div>
       </PageCard>
 
-      <div className="grid gap-5">
+      <div className="grid h-full min-h-0 content-start gap-5 overflow-y-auto pr-1">
         {/* ===== TIPS / REVIEWS CARD ===== */}
-        <PageCard>
+        <PageCard className="shrink-0">
           <div className="flex items-center gap-3">
             <div className="rounded-2xl bg-slate-100 p-3">
               <QrCode />
@@ -172,7 +173,7 @@ export default function HomePage({
             type="button"
             onClick={() => setTipModalOpen(true)}
             disabled={!hasTipOptions}
-            className="mt-5 w-full rounded-3xl bg-slate-950 p-5 text-center text-xl font-black text-white shadow-lg disabled:bg-slate-300 disabled:text-slate-500"
+            className="mt-5 w-full rounded-3xl bg-slate-950 p-4 text-center text-xl font-black text-white shadow-lg disabled:bg-slate-300 disabled:text-slate-500"
           >
             {hasTipOptions
               ? tr("home_tip_now", "Tip Now")
@@ -189,7 +190,7 @@ export default function HomePage({
 
         {/* ===== FEATURED LOCAL DEAL CARD ===== */}
         {featuredAd && (
-          <PageCard>
+          <PageCard className="shrink-0">
             <div className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
               {tr("home_featured_deal", "Featured local deal")}
             </div>
