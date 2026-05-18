@@ -18,6 +18,11 @@ import { starterAds } from "./data/starterAds.js";
 import { defaultRequestCategories as starterRequestCategories } from "./data/defaultRequests.js";
 import { createTranslator } from "./data/translations.js";
 import { setPassengerLanguage } from "./services/rideSessionService.js";
+import {
+  DEFAULT_ADMIN_PIN,
+  defaultGuestbookEntries,
+  defaultDriverProfile,
+} from "./config/defaultContent.js";
 
 // ===== LOCAL STORAGE SERVICES =====
 import {
@@ -34,37 +39,6 @@ import {
   loadAdminPin,
   saveAdminPin,
 } from "./services/storageService.js";
-
-const DEFAULT_ADMIN_PIN = "1234";
-
-// ===== DEFAULT GUESTBOOK DATA =====
-const defaultGuestbookEntries = [
-  {
-    id: 101,
-    name: "Sam",
-    city: "Joplin, MO",
-    message: "Great ride and clean setup!",
-    approved: true,
-  },
-];
-
-// ===== DRIVER PROFILE DEFAULTS =====
-const defaultDriverProfile = {
-  name: "Aaron",
-  bio: "Welcome aboard. I hope you have a comfortable ride — feel free to check out local deals, trivia, weather, or send a quick ride request.",
-  localTip: "Ask me about good local food spots if you're visiting Joplin.",
-  photo: "",
-
-  // ===== MANUAL DYNAMIC TRANSLATIONS =====
-  bioTranslations: {
-    es: "",
-    fr: "",
-  },
-  localTipTranslations: {
-    es: "",
-    fr: "",
-  },
-};
 
 export default function App() {
   // ===== ROUTE DETECTION =====
