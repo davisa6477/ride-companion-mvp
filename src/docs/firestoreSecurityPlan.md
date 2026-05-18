@@ -25,6 +25,8 @@ Used for:
 adminConfig/content
 adminConfig/profile
 adminConfig/settings
+adminConfig/tipOptions
+adminConfig/requestCategories
 guestbookEntries/{entryId}
 ads/{adId}
 ```
@@ -126,3 +128,15 @@ adminConfig/profile
 ```
 
 This lets profile edits sync independently from request categories, tip options, and admin PIN.
+
+
+## Tip Options and Request Categories Container Status
+
+Tip options and request categories have been split out of the combined adminConfig/content snapshot into:
+
+```txt
+adminConfig/tipOptions
+adminConfig/requestCategories
+```
+
+The remaining adminConfig/content snapshot now primarily holds MVP admin PIN state until real backend auth replaces it.

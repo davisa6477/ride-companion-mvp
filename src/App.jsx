@@ -51,6 +51,16 @@ import {
   listenToSharedDriverProfile,
   saveSharedDriverProfile,
 } from "./services/firestoreDriverProfileService.js";
+import {
+  getSharedTipOptions,
+  listenToSharedTipOptions,
+  saveSharedTipOptions,
+} from "./services/firestoreTipOptionsService.js";
+import {
+  getSharedRequestCategories,
+  listenToSharedRequestCategories,
+  saveSharedRequestCategories,
+} from "./services/firestoreRequestCategoriesService.js";
 
 export default function App() {
   // ===== ROUTE DETECTION =====
@@ -89,6 +99,8 @@ export default function App() {
   const lastSharedGuestbookEntriesJsonRef = useRef("");
   const lastSharedAdsJsonRef = useRef("");
   const lastSharedDriverProfileJsonRef = useRef("");
+  const lastSharedTipOptionsJsonRef = useRef("");
+  const lastSharedRequestCategoriesJsonRef = useRef("");
 
   // ===== GUESTBOOK STATE =====
   const [entries, setEntries] = useState(() => initialAdminContent.entries);
@@ -124,8 +136,6 @@ export default function App() {
   function normalizeSharedAdminContent(sharedContent = {}) {
     return {
       adminPin: sharedContent.adminPin || adminPin,
-      requestCategories: sharedContent.requestCategories || {},
-      tipOptions: sharedContent.tipOptions || [],
     };
   }
 
@@ -136,8 +146,6 @@ export default function App() {
       JSON.stringify(normalizedContent);
 
     setAdminPin(normalizedContent.adminPin);
-    setRequestCategories(normalizedContent.requestCategories);
-    setTipOptions(normalizedContent.tipOptions);
   }
 
   function applySharedAppSettings(sharedSettings) {
@@ -176,6 +184,24 @@ export default function App() {
     setDriverProfile(sharedProfile);
   }
 
+  function applySharedTipOptions(sharedTipOptions) {
+    if (!Array.isArray(sharedTipOptions)) return;
+
+    lastSharedTipOptionsJsonRef.current =
+      JSON.stringify(sharedTipOptions);
+
+    setTipOptions(sharedTipOptions);
+  }
+
+  function applySharedRequestCategories(sharedRequestCategories) {
+    if (!sharedRequestCategories) return;
+
+    lastSharedRequestCategoriesJsonRef.current =
+      JSON.stringify(sharedRequestCategories);
+
+    setRequestCategories(sharedRequestCategories);
+  }
+
   // ===== OPTIONAL FIRESTORE INITIAL LOAD =====
   // Local storage is still the immediate fallback. If shared Firestore content
   // exists, it replaces the local initial state after the app mounts.
@@ -190,12 +216,16 @@ export default function App() {
           sharedGuestbookEntries,
           sharedAds,
           sharedDriverProfile,
+          sharedTipOptions,
+          sharedRequestCategories,
         ] = await Promise.all([
           loadSharedAdminContent(),
           loadSharedAppSettings(),
           getSharedGuestbookEntries(),
           getSharedAds(),
           getSharedDriverProfile(),
+          getSharedTipOptions(),
+          getSharedRequestCategories(),
         ]);
 
         if (!mounted) return;
@@ -218,6 +248,14 @@ export default function App() {
 
         if (sharedDriverProfile) {
           applySharedDriverProfile(sharedDriverProfile);
+        }
+
+        if (Array.isArray(sharedTipOptions)) {
+          applySharedTipOptions(sharedTipOptions);
+        }
+
+        if (sharedRequestCategories) {
+          applySharedRequestCategories(sharedRequestCategories);
         }
       } catch (error) {
         console.error("Failed to load shared Firestore state:", error);
@@ -272,12 +310,28 @@ export default function App() {
       setSharedStateReady(true);
     });
 
+    const unsubscribeTipOptions = listenToSharedTipOptions((sharedTipOptions) => {
+      if (!Array.isArray(sharedTipOptions)) return;
+      applySharedTipOptions(sharedTipOptions);
+      setSharedStateReady(true);
+    });
+
+    const unsubscribeRequestCategories = listenToSharedRequestCategories(
+      (sharedRequestCategories) => {
+        if (!sharedRequestCategories) return;
+        applySharedRequestCategories(sharedRequestCategories);
+        setSharedStateReady(true);
+      }
+    );
+
     return () => {
       if (unsubscribeContent) unsubscribeContent();
       if (unsubscribeSettings) unsubscribeSettings();
       if (unsubscribeGuestbook) unsubscribeGuestbook();
       if (unsubscribeAds) unsubscribeAds();
       if (unsubscribeDriverProfile) unsubscribeDriverProfile();
+      if (unsubscribeTipOptions) unsubscribeTipOptions();
+      if (unsubscribeRequestCategories) unsubscribeRequestCategories();
     };
     // Run once. Helper functions intentionally use current state fallbacks.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -318,7 +372,18 @@ export default function App() {
   // ===== TIP OPTIONS PERSISTENCE =====
   useEffect(() => {
     saveTipOptions(tipOptions);
-  }, [tipOptions]);
+
+    if (!sharedStateReady || !canWriteFullAdminContent) return;
+
+    const tipOptionsJson = JSON.stringify(tipOptions);
+
+    if (tipOptionsJson === lastSharedTipOptionsJsonRef.current) {
+      return;
+    }
+
+    lastSharedTipOptionsJsonRef.current = tipOptionsJson;
+    saveSharedTipOptions(tipOptions);
+  }, [tipOptions, sharedStateReady, canWriteFullAdminContent]);
 
   // ===== ADS PERSISTENCE =====
   useEffect(() => {
@@ -355,7 +420,18 @@ export default function App() {
   // ===== REQUEST CATEGORIES PERSISTENCE =====
   useEffect(() => {
     saveRequestCategories(requestCategories);
-  }, [requestCategories]);
+
+    if (!sharedStateReady || !canWriteFullAdminContent) return;
+
+    const requestCategoriesJson = JSON.stringify(requestCategories);
+
+    if (requestCategoriesJson === lastSharedRequestCategoriesJsonRef.current) {
+      return;
+    }
+
+    lastSharedRequestCategoriesJsonRef.current = requestCategoriesJson;
+    saveSharedRequestCategories(requestCategories);
+  }, [requestCategories, sharedStateReady, canWriteFullAdminContent]);
 
   // ===== ADMIN PIN PERSISTENCE =====
   useEffect(() => {
@@ -363,16 +439,14 @@ export default function App() {
   }, [adminPin]);
 
   // ===== SHARED FIRESTORE ADMIN CONTENT SNAPSHOT =====
-  // Guestbook entries, ads, and driver profile now sync through their own
-  // Firestore services. This snapshot is admin-only and contains remaining
-  // non-containerized admin content.
+  // Guestbook entries, ads, driver profile, tip options, and request categories
+  // now sync through their own Firestore services. This remaining snapshot only
+  // contains MVP admin PIN state until auth replaces it.
   useEffect(() => {
     if (!sharedStateReady || !canWriteFullAdminContent) return;
 
     const contentSnapshot = {
       adminPin,
-      requestCategories,
-      tipOptions,
     };
 
     const contentJson = JSON.stringify(contentSnapshot);
@@ -385,8 +459,6 @@ export default function App() {
     saveSharedAdminContentSnapshot(contentSnapshot);
   }, [
     adminPin,
-    requestCategories,
-    tipOptions,
     sharedStateReady,
     canWriteFullAdminContent,
   ]);

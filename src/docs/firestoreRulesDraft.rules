@@ -44,7 +44,7 @@ service cloud.firestore {
 
     // ===== SHARED ADMIN CONFIG =====
     match /adminConfig/{docId} {
-      // Passenger tablet needs to read shared content/profile/settings.
+      // Passenger tablet needs to read shared content/profile/settings/tipOptions/requestCategories.
       allow read: if true;
 
       // Production should require Firebase Auth/admin claim here.

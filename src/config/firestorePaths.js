@@ -10,6 +10,8 @@ export const FIRESTORE_PATHS = {
   adminContentDocId: "content",
   appSettingsDocId: "settings",
   driverProfileDocId: "profile",
+  tipOptionsDocId: "tipOptions",
+  requestCategoriesDocId: "requestCategories",
   guestbookEntries: "guestbookEntries",
   legacyGuestbook: "guestbook",
   legacyGuestbookEntriesDocId: "entries",
