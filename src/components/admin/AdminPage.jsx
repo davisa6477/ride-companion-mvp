@@ -85,6 +85,8 @@ export default function AdminPage({
   setDriverProfile,
   tipOptions,
   setTipOptions,
+  appSettings,
+  setAppSettings,
 }) {
   // ===== ADMIN LOGIN STATE =====
   const [pin, setPin] = useState("");
@@ -150,6 +152,22 @@ export default function AdminPage({
         [language]: value,
       },
     });
+  }
+
+  // ===== APP SETTINGS HELPERS =====
+  function updateAppSetting(field, value) {
+    setAppSettings({
+      ...appSettings,
+      [field]: value,
+    });
+  }
+
+  function normalizeZipCode(value) {
+    return value.replace(/[^0-9]/g, "").slice(0, 5);
+  }
+
+  function handleDefaultZipChange(value) {
+    updateAppSetting("defaultZipCode", normalizeZipCode(value));
   }
 
   function handleDriverPhotoUpload(event) {
@@ -456,11 +474,12 @@ export default function AdminPage({
         </div>
 
         {/* ===== ADMIN INTERNAL PAGE NAVIGATION ===== */}
-        <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
+        <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-7">
           {[
             ["guestbook", "Guestbook"],
             ["pin", "PIN"],
             ["profile", "Profile"],
+            ["settings", "Settings"],
             ["tips", "Tips"],
             ["requests", "Requests"],
             ["ads", "Ads"],
@@ -793,6 +812,76 @@ export default function AdminPage({
         </div>
       </PageCard>
 
+        </div>
+      )}
+
+
+      {adminSection === "settings" && (
+        <div className="mx-auto w-full max-w-2xl">
+          {/* ===== APP SETTINGS ===== */}
+          <PageCard>
+            <h2 className="text-2xl font-black text-slate-950">
+              App Settings
+            </h2>
+
+            <p className="mt-2 text-sm text-slate-500">
+              Global settings used by passenger pages. These are still stored in
+              this browser until the Firestore settings sync is added.
+            </p>
+
+            <div className="mt-4 grid gap-4">
+              <div className="grid gap-2">
+                <label className="text-sm font-black text-slate-700">
+                  Default ZIP Code
+                </label>
+
+                <input
+                  value={appSettings?.defaultZipCode || ""}
+                  onChange={(e) => handleDefaultZipChange(e.target.value)}
+                  placeholder="64801"
+                  inputMode="numeric"
+                  maxLength={5}
+                  className="rounded-2xl border border-slate-200 p-3 outline-none"
+                />
+
+                <p className="text-xs text-slate-500">
+                  Used later as the fallback for Weather and Local when device
+                  location is unavailable or denied.
+                </p>
+              </div>
+
+              <div className="grid gap-2">
+                <label className="text-sm font-black text-slate-700">
+                  Default Location Label
+                </label>
+
+                <input
+                  value={appSettings?.defaultLocationLabel || ""}
+                  onChange={(e) =>
+                    updateAppSetting("defaultLocationLabel", e.target.value)
+                  }
+                  placeholder="Joplin, MO"
+                  className="rounded-2xl border border-slate-200 p-3 outline-none"
+                />
+
+                <p className="text-xs text-slate-500">
+                  Passenger-facing label for the fallback location.
+                </p>
+              </div>
+
+              <div className="rounded-2xl bg-slate-100 p-4 text-sm text-slate-600">
+                Current fallback:{" "}
+                <span className="font-black text-slate-950">
+                  {appSettings?.defaultLocationLabel || "Joplin, MO"}
+                </span>{" "}
+                <span className="font-black text-slate-950">
+                  {appSettings?.defaultZipCode
+                    ? `(${appSettings.defaultZipCode})`
+                    : ""}
+                </span>
+              </div>
+            </div>
+          </PageCard>
         </div>
       )}
 

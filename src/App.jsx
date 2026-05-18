@@ -185,6 +185,8 @@ export default function App() {
             setDriverProfile={setDriverProfile}
             tipOptions={tipOptions}
             setTipOptions={setTipOptions}
+            appSettings={appSettings}
+            setAppSettings={setAppSettings}
           />
         </div>
       </main>
