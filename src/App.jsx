@@ -18,7 +18,10 @@ import DriverConsolePage from "./components/console/DriverConsolePage.jsx";
 
 import { createTranslator } from "./data/translations.js";
 import { setPassengerLanguage } from "./services/rideSessionService.js";
-import { loadLocalPairedDevice } from "./services/devicePairingService.js";
+import {
+  loadLocalPairedDevice,
+  listenToLocalPairedDeviceValidation,
+} from "./services/devicePairingService.js";
 // ===== ADMIN CONTENT SERVICE =====
 import {
   loadAdminContent,
@@ -97,12 +100,16 @@ export default function App() {
   // ===== PAIRING GATE =====
   // Passenger/device pages should not load straight into the app on an unpaired
   // device. Admin and /pair remain accessible.
-  const deviceIsPaired = Boolean(initialPairedDevice?.deviceId);
-  const pairedDeviceType = initialPairedDevice?.deviceType || "";
+  const deviceIsPaired = Boolean(pairedDevice?.deviceId);
+  const pairedDeviceType = pairedDevice?.deviceType || "";
   const deviceIsDriverConsole =
     pairedDeviceType === DEVICE_TYPES.driverConsole.id;
-  const shouldRequirePairing = isPassengerPage && !deviceIsPaired;
-  const shouldRequireConsolePairing = isDriverConsole && !deviceIsDriverConsole;
+  const shouldWaitForPairingValidation =
+    !pairingValidationReady && (isPassengerPage || isDriverConsole);
+  const shouldRequirePairing =
+    isPassengerPage && pairingValidationReady && !deviceIsPaired;
+  const shouldRequireConsolePairing =
+    isDriverConsole && pairingValidationReady && !deviceIsDriverConsole;
 
   // ===== PASSENGER UI STATE =====
   const [page, setPage] = useState("home");
@@ -112,7 +119,10 @@ export default function App() {
   const [appSettings, setAppSettings] = useState(() => initialAppSettings);
 
   // ===== PAIRED DEVICE STATE =====
-  const [pairedDevice] = useState(() => initialPairedDevice);
+  const [pairedDevice, setPairedDevice] = useState(() => initialPairedDevice);
+  const [pairingValidationReady, setPairingValidationReady] = useState(
+    () => !initialPairedDevice?.deviceId
+  );
 
   // ===== FIRESTORE SYNC STATE =====
   // Prevents the local fallback/default state from overwriting Firestore before
@@ -226,6 +236,27 @@ export default function App() {
 
     setRequestCategories(sharedRequestCategories);
   }
+
+  // ===== PAIRED DEVICE VALIDATION =====
+  // LocalStorage alone is not trusted. If Admin removes pairedDevices/{deviceId}
+  // in Firebase, this listener clears the local pairing and sends the browser
+  // back through the pairing gate.
+  useEffect(() => {
+    const unsubscribe = listenToLocalPairedDeviceValidation(
+      ({ pairedDevice: validatedDevice }) => {
+        setPairedDevice(validatedDevice);
+        setPairingValidationReady(true);
+      },
+      (error) => {
+        console.error("Paired device validation failed:", error);
+        setPairingValidationReady(true);
+      }
+    );
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
 
   // ===== OPTIONAL FIRESTORE INITIAL LOAD =====
   // Local storage is still the immediate fallback. If shared Firestore content
@@ -545,6 +576,24 @@ export default function App() {
       });
     };
   }, [isDriverConsole, isAdminPage, isPairingPage]);
+
+  // ===== PAIRING VALIDATION LOADING =====
+  if (shouldWaitForPairingValidation) {
+    return (
+      <main className="min-h-screen bg-slate-950 p-4 text-white md:p-6">
+        <div className="mx-auto flex min-h-[70vh] max-w-6xl items-center justify-center">
+          <div className="rounded-3xl bg-white/10 p-6 text-center backdrop-blur">
+            <div className="text-sm font-black uppercase tracking-[.25em] text-white/50">
+              Checking Device Pairing
+            </div>
+            <div className="mt-2 text-2xl font-black">
+              Validating this device...
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   // ===== DEVICE PAIRING ROUTE =====
   if (isPairingPage) {

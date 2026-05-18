@@ -8,6 +8,7 @@ import {
   clearLocalPairedDevice,
   createPairingCode,
   listenToPairingCode,
+  listenToLocalPairedDeviceValidation,
   loadLocalPairedDevice,
   saveLocalPairedDevice,
 } from "../../services/devicePairingService.js";
@@ -68,6 +69,19 @@ export default function PairingPage({
     setPairing(null);
     setMessage("This device pairing was cleared locally.");
   }
+
+  // ===== PAIRING PAGE LOCAL VALIDATION =====
+  useEffect(() => {
+    const unsubscribe = listenToLocalPairedDeviceValidation(
+      ({ pairedDevice: validatedDevice }) => {
+        setPairedDevice(validatedDevice);
+      }
+    );
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     if (requiredDeviceType) {

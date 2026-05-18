@@ -212,3 +212,72 @@ export function buildLocalPairedDeviceFromPairing(pairing) {
     pairedAtMs: Date.now(),
   };
 }
+
+// ===== LOCAL PAIRED DEVICE VALIDATION =====
+// Keeps a browser's local pairing from remaining trusted after Admin removes
+// the pairedDevices/{deviceId} document in Firebase.
+export function listenToLocalPairedDeviceValidation(callback, onError) {
+  const localDevice = loadLocalPairedDevice();
+
+  if (!localDevice?.deviceId) {
+    callback({
+      pairedDevice: null,
+      valid: false,
+      reason: "no-local-pairing",
+    });
+
+    return () => {};
+  }
+
+  return onSnapshot(
+    getPairedDeviceRef(localDevice.deviceId),
+    (snapshot) => {
+      if (!snapshot.exists()) {
+        clearLocalPairedDevice();
+
+        callback({
+          pairedDevice: null,
+          valid: false,
+          reason: "pairing-removed",
+        });
+
+        return;
+      }
+
+      const remoteDevice = {
+        deviceId: snapshot.id,
+        ...snapshot.data(),
+      };
+
+      if (remoteDevice.approved === false) {
+        clearLocalPairedDevice();
+
+        callback({
+          pairedDevice: null,
+          valid: false,
+          reason: "pairing-not-approved",
+        });
+
+        return;
+      }
+
+      const syncedDevice = {
+        ...localDevice,
+        ...remoteDevice,
+        approved: true,
+      };
+
+      saveLocalPairedDevice(syncedDevice);
+
+      callback({
+        pairedDevice: syncedDevice,
+        valid: true,
+        reason: "paired",
+      });
+    },
+    (error) => {
+      console.error("Failed to validate local paired device:", error);
+      if (onError) onError(error);
+    }
+  );
+}
