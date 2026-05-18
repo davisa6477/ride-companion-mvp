@@ -241,7 +241,7 @@ export default function App() {
           />
         )}
 
-        {page === "local" && <LocalPage t={t} />}
+        {page === "local" && <LocalPage t={t} appSettings={appSettings} />}
 
         {page === "guestbook" && (
           <GuestbookPage entries={entries} setEntries={setEntries} t={t} />
@@ -251,7 +251,7 @@ export default function App() {
 
         {page === "games" && <GamesPage t={t} />}
 
-        {page === "weather" && <WeatherPage t={t} />}
+        {page === "weather" && <WeatherPage t={t} appSettings={appSettings} />}
 
         {page === "requests" && (
           <RequestsPage requestCategories={requestCategories} t={t} />

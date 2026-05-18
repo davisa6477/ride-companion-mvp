@@ -5,7 +5,11 @@
 import React, { useEffect, useState } from "react";
 import { CloudRain, CloudSun, Thermometer } from "lucide-react";
 import PageCard from "../layout/PageCard.jsx";
-import { getReadableDeviceLocation } from "../../utils/location.js";
+import {
+  getCoordinatesForUsZip,
+  getFallbackLocationSettings,
+  getReadableDeviceLocation,
+} from "../../utils/location.js";
 
 // ===== WEATHER CONDITION LABELS =====
 // These are dynamic weather-code labels from Open-Meteo.
@@ -131,7 +135,7 @@ function getWeatherVisual(code) {
   };
 }
 
-export default function WeatherPage({ t = (key) => key }) {
+export default function WeatherPage({ t = (key) => key, appSettings = {} }) {
   // ===== WEATHER STATE =====
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -143,6 +147,9 @@ export default function WeatherPage({ t = (key) => key }) {
     const translated = t(key);
     return translated === key ? fallback : translated;
   }
+
+  // ===== ADMIN CONFIGURED FALLBACK LOCATION =====
+  const fallbackLocation = getFallbackLocationSettings(appSettings);
 
   // ===== WEATHER API FETCH =====
   async function fetchWeather(latitude, longitude, label) {
@@ -174,14 +181,39 @@ export default function WeatherPage({ t = (key) => key }) {
   // ===== FALLBACK LOCATION WEATHER =====
   async function loadFallbackWeather(message) {
     try {
-      await fetchWeather(37.0842, -94.5133, "Joplin, MO");
+      let fallbackCoordinates;
+
+      try {
+        fallbackCoordinates = await getCoordinatesForUsZip(
+          fallbackLocation.defaultZipCode
+        );
+      } catch {
+        // Hard fallback if the configured ZIP cannot be geocoded.
+        fallbackCoordinates = {
+          latitude: 37.0842,
+          longitude: -94.5133,
+          label: "Joplin, MO",
+        };
+      }
+
+      const fallbackLabel =
+        fallbackLocation.defaultLocationLabel ||
+        fallbackCoordinates.label ||
+        fallbackLocation.defaultZipCode ||
+        "Joplin, MO";
+
+      await fetchWeather(
+        fallbackCoordinates.latitude,
+        fallbackCoordinates.longitude,
+        fallbackLabel
+      );
 
       setErrorMessage(
         message ||
-          tr(
+          `${tr(
             "weather_fallback_message",
-            "Using Joplin, MO fallback weather because device location is unavailable in preview."
-          )
+            "Using fallback weather because device location is unavailable."
+          )} ${fallbackLabel}.`
       );
     } catch {
       setErrorMessage(

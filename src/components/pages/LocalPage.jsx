@@ -8,6 +8,7 @@ import { QRCodeSVG } from "qrcode.react";
 import PageCard from "../layout/PageCard.jsx";
 import {
   buildNearSearchLabel,
+  getFallbackLocationSettings,
   getReadableDeviceLocation,
 } from "../../utils/location.js";
 
@@ -19,7 +20,7 @@ function buildGoogleMapsSearchUrl(query) {
   )}`;
 }
 
-export default function LocalPage({ t = (key) => key }) {
+export default function LocalPage({ t = (key) => key, appSettings = {} }) {
   // ===== STATIC TRANSLATION HELPER =====
   function tr(key, fallback) {
     const translated = t(key);
@@ -151,29 +152,36 @@ export default function LocalPage({ t = (key) => key }) {
   // Google Maps still receives the English search value from selectedSearch.
   const nearMeLabel = tr("local_near_me", "near me");
 
+  // ===== ADMIN CONFIGURED FALLBACK LOCATION =====
+  const fallbackLocation = getFallbackLocationSettings(appSettings);
+  const fallbackSearchLabel =
+    fallbackLocation.defaultLocationLabel || fallbackLocation.defaultZipCode || nearMeLabel;
+
   // ===== LOCATION STATE =====
-  const [locationLabel, setLocationLabel] = useState(nearMeLabel);
+  const [locationLabel, setLocationLabel] = useState(fallbackSearchLabel);
   const [locationStatus, setLocationStatus] = useState(
     tr("local_location_loading", "Trying device location...")
   );
   const [locationReady, setLocationReady] = useState(false);
 
   // ===== DEVICE LOCATION LOAD =====
-  // Uses readable location when available; falls back to the translated near-me label.
+  // Uses readable location when available; falls back to the admin-configured location.
   useEffect(() => {
     let mounted = true;
 
     async function loadLocationLabel() {
       try {
-        const location = await getReadableDeviceLocation(nearMeLabel);
+        const location = await getReadableDeviceLocation(fallbackSearchLabel);
 
         if (!mounted) return;
 
-        setLocationLabel(location.label || nearMeLabel);
+        setLocationLabel(location.label || fallbackSearchLabel);
 
         setLocationStatus(
           location.usedFallbackLabel
-            ? tr("local_general_search", "Using a general nearby search.")
+            ? `${tr("local_searching_around", "Searching around")} ${
+                fallbackSearchLabel
+              }.`
             : `${tr("local_searching_around", "Searching around")} ${
                 location.label
               }.`
@@ -181,12 +189,11 @@ export default function LocalPage({ t = (key) => key }) {
       } catch {
         if (!mounted) return;
 
-        setLocationLabel(nearMeLabel);
+        setLocationLabel(fallbackSearchLabel);
         setLocationStatus(
-          tr(
-            "local_location_unavailable",
-            "Location unavailable. QR searches will use near me."
-          )
+          `${tr("local_location_unavailable", "Location unavailable. QR searches will use")} ${
+            fallbackSearchLabel
+          }.`
         );
       } finally {
         if (mounted) setLocationReady(true);
@@ -198,7 +205,7 @@ export default function LocalPage({ t = (key) => key }) {
     return () => {
       mounted = false;
     };
-  }, [nearMeLabel]);
+  }, [fallbackSearchLabel, nearMeLabel]);
 
   // ===== CATEGORY SELECTION =====
   function chooseCategory(category) {

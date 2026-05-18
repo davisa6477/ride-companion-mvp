@@ -142,3 +142,55 @@ export async function getReadableDeviceLocation(fallbackLabel = "near me") {
 export function buildNearSearchLabel(category, locationLabel) {
   return `${category} ${locationLabel || "near me"}`;
 }
+
+
+// ===== FALLBACK LOCATION SETTINGS NORMALIZER =====
+// Used when the device location is blocked, unavailable, or not desired.
+export function getFallbackLocationSettings(appSettings = {}) {
+  const defaultZipCode = String(appSettings.defaultZipCode || "64801")
+    .replace(/[^0-9]/g, "")
+    .slice(0, 5);
+
+  const defaultLocationLabel =
+    String(appSettings.defaultLocationLabel || "").trim() || "Joplin, MO";
+
+  return {
+    defaultZipCode: defaultZipCode || "64801",
+    defaultLocationLabel,
+  };
+}
+
+// ===== ZIP CODE GEOCODING =====
+// Browser-side MVP lookup for a US ZIP code using the public Zippopotam.us API.
+// If this fails, WeatherPage falls back to Joplin coordinates.
+export async function getCoordinatesForUsZip(zipCode) {
+  const cleanedZip = String(zipCode || "").replace(/[^0-9]/g, "").slice(0, 5);
+
+  if (cleanedZip.length !== 5) {
+    throw new Error("A 5-digit ZIP code is required.");
+  }
+
+  const response = await fetch(`https://api.zippopotam.us/us/${cleanedZip}`);
+
+  if (!response.ok) {
+    throw new Error("ZIP lookup failed.");
+  }
+
+  const data = await response.json();
+  const place = data.places?.[0];
+
+  if (!place?.latitude || !place?.longitude) {
+    throw new Error("ZIP lookup did not return coordinates.");
+  }
+
+  return {
+    latitude: Number(place.latitude),
+    longitude: Number(place.longitude),
+    city: place["place name"] || "",
+    state: place["state abbreviation"] || "",
+    label:
+      place["place name"] && place["state abbreviation"]
+        ? `${place["place name"]}, ${place["state abbreviation"]}`
+        : cleanedZip,
+  };
+}
