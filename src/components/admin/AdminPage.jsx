@@ -5,9 +5,17 @@
 // This page is intentionally kept off passenger navigation and accessed by /admin.
 
 import React, { useEffect, useRef, useState } from "react";
-import { Lock, Plus, Trash2 } from "lucide-react";
+import { Link, Lock, Plus, Trash2 } from "lucide-react";
 import PageCard from "../layout/PageCard.jsx";
 import { securityStatus } from "../../config/securityStatus.js";
+import { DEVICE_TYPES } from "../../config/deviceTypes.js";
+import {
+  approvePairingCode,
+  listenToPairedDevices,
+  listenToPendingPairingCodes,
+  removePairedDevice,
+  rejectPairingCode,
+} from "../../services/devicePairingService.js";
 import {
   formatLockoutTime,
   getAdminSessionRemainingMs,
@@ -128,6 +136,11 @@ export default function AdminPage({
   // Keeps the admin interface separated into simple internal pages instead of
   // scrolling/jumping through one long screen.
   const [adminSection, setAdminSection] = useState("guestbook");
+
+  // ===== DEVICE PAIRING STATE =====
+  const [pendingPairingCodes, setPendingPairingCodes] = useState([]);
+  const [pairedDevices, setPairedDevices] = useState([]);
+  const [pairingMessage, setPairingMessage] = useState("");
 
   // ===== ADMIN PIN CHANGE STATE =====
   const [newPin, setNewPin] = useState("");
@@ -303,6 +316,26 @@ export default function AdminPage({
     return () => unsubscribe();
   }, []);
 
+  // ===== DEVICE PAIRING LISTENERS =====
+  useEffect(() => {
+    if (!unlocked) return undefined;
+
+    const unsubscribePending = listenToPendingPairingCodes(
+      setPendingPairingCodes,
+      (error) => setPairingMessage(error?.message || "Could not load pairing codes.")
+    );
+
+    const unsubscribeDevices = listenToPairedDevices(
+      setPairedDevices,
+      (error) => setPairingMessage(error?.message || "Could not load paired devices.")
+    );
+
+    return () => {
+      if (unsubscribePending) unsubscribePending();
+      if (unsubscribeDevices) unsubscribeDevices();
+    };
+  }, [unlocked]);
+
   // ===== ADMIN LOCKOUT TIMER =====
   useEffect(() => {
     if (!lockedUntil) return undefined;
@@ -447,6 +480,40 @@ export default function AdminPage({
     setLoginError(typeof message === "string" ? message : "");
 
     setSessionExpiresAt(0);
+  }
+
+  // ===== DEVICE PAIRING FUNCTIONS =====
+  async function approveDevicePairing(code) {
+    setPairingMessage("");
+
+    try {
+      await approvePairingCode(code, firebaseAdminEmail || "admin");
+      setPairingMessage(`Pairing code ${code} approved.`);
+    } catch (error) {
+      setPairingMessage(error?.message || "Could not approve pairing code.");
+    }
+  }
+
+  async function rejectDevicePairing(code) {
+    setPairingMessage("");
+
+    try {
+      await rejectPairingCode(code);
+      setPairingMessage(`Pairing code ${code} rejected.`);
+    } catch (error) {
+      setPairingMessage(error?.message || "Could not reject pairing code.");
+    }
+  }
+
+  async function removeDevice(deviceId) {
+    setPairingMessage("");
+
+    try {
+      await removePairedDevice(deviceId);
+      setPairingMessage("Paired device removed.");
+    } catch (error) {
+      setPairingMessage(error?.message || "Could not remove paired device.");
+    }
   }
 
   // ===== GUESTBOOK FUNCTIONS =====
@@ -827,12 +894,13 @@ export default function AdminPage({
         </div>
 
         {/* ===== ADMIN INTERNAL PAGE NAVIGATION ===== */}
-        <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-7">
+        <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-8">
           {[
             ["guestbook", "Guestbook"],
             ["pin", "PIN"],
             ["profile", "Profile"],
             ["settings", "Settings"],
+            ["pairing", "Pairing"],
             ["tips", "Tips"],
             ["requests", "Requests"],
             ["ads", "Ads"],
@@ -1232,6 +1300,132 @@ export default function AdminPage({
                     ? `(${appSettings.defaultZipCode})`
                     : ""}
                 </span>
+              </div>
+            </div>
+          </PageCard>
+        </div>
+      )}
+
+
+      {adminSection === "pairing" && (
+        <div className="mx-auto w-full max-w-5xl">
+          <PageCard>
+            <div className="flex items-center gap-3">
+              <div className="rounded-2xl bg-slate-100 p-3">
+                <Link />
+              </div>
+
+              <div>
+                <h2 className="text-2xl font-black text-slate-950">
+                  Pair Devices
+                </h2>
+                <p className="text-sm text-slate-500">
+                  Approve passenger tablets or driver consoles without putting Admin credentials on those devices.
+                </p>
+              </div>
+            </div>
+
+            {pairingMessage && (
+              <div className="mt-4 rounded-2xl bg-slate-100 p-3 text-sm font-bold text-slate-700">
+                {pairingMessage}
+              </div>
+            )}
+
+            <div className="mt-5 grid gap-5 lg:grid-cols-2">
+              <div>
+                <h3 className="text-lg font-black text-slate-950">
+                  Pending Pairing Codes
+                </h3>
+
+                <div className="mt-3 grid gap-3">
+                  {pendingPairingCodes.length === 0 ? (
+                    <div className="rounded-2xl bg-slate-100 p-4 text-sm text-slate-500">
+                      No pending pairing codes.
+                    </div>
+                  ) : (
+                    pendingPairingCodes.map((item) => (
+                      <div
+                        key={item.code || item.id}
+                        className="rounded-2xl bg-slate-100 p-4"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="text-2xl font-black tracking-widest text-slate-950">
+                              {item.code || item.id}
+                            </div>
+                            <div className="mt-1 text-sm font-bold text-slate-600">
+                              {DEVICE_TYPES[item.deviceType]?.label || item.deviceType}
+                            </div>
+                            {item.deviceLabel && (
+                              <div className="text-sm text-slate-500">
+                                {item.deviceLabel}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => approveDevicePairing(item.code || item.id)}
+                            className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-black text-white"
+                          >
+                            Approve
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => rejectDevicePairing(item.code || item.id)}
+                            className="rounded-xl bg-white px-4 py-2 text-sm font-black text-rose-700"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-black text-slate-950">
+                  Paired Devices
+                </h3>
+
+                <div className="mt-3 grid gap-3">
+                  {pairedDevices.length === 0 ? (
+                    <div className="rounded-2xl bg-slate-100 p-4 text-sm text-slate-500">
+                      No paired devices yet.
+                    </div>
+                  ) : (
+                    pairedDevices.map((device) => (
+                      <div
+                        key={device.deviceId || device.id}
+                        className="rounded-2xl bg-slate-100 p-4"
+                      >
+                        <div className="font-black text-slate-950">
+                          {DEVICE_TYPES[device.deviceType]?.label || device.deviceType}
+                        </div>
+                        {device.deviceLabel && (
+                          <div className="text-sm text-slate-500">
+                            {device.deviceLabel}
+                          </div>
+                        )}
+                        <div className="mt-1 break-all text-xs text-slate-400">
+                          {device.deviceId || device.id}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => removeDevice(device.deviceId || device.id)}
+                          className="mt-3 rounded-xl bg-white px-4 py-2 text-sm font-black text-rose-700"
+                        >
+                          Remove Device
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           </PageCard>

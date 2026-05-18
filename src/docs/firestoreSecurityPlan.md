@@ -168,3 +168,18 @@ src/docs/firestoreRulesPhase17BDraft.rules
 ```
 
 For the single-admin beta, the draft treats any signed-in Firebase Auth user as Admin. Before broader release, replace `isAdmin()` with a custom-claims check.
+
+
+## Phase 18A Device Pairing Foundation
+
+Added a YouTube-TV-style pairing foundation:
+
+```txt
+/pair
+pairingCodes/{code}
+pairedDevices/{deviceId}
+```
+
+Devices can generate a short code without Admin credentials. Admin approves the code from `/admin > Pairing`. The device then stores its paired device record locally.
+
+This is not yet used to scope reads/writes by config/session, but it establishes the structure needed for device-based rules later.
