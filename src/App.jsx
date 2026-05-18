@@ -42,6 +42,15 @@ export default function App() {
   const pathname = window.location.pathname;
   const isDriverConsole = pathname === "/console";
   const isAdminPage = pathname === "/admin";
+  const isPassengerPage = !isDriverConsole && !isAdminPage;
+
+  // ===== FIRESTORE WRITE SCOPE =====
+  // Until Firebase Auth/security rules are added, shared Firestore writes are
+  // intentionally route-scoped. Admin can write full shared content/settings.
+  // Passenger pages can only write guestbook-related shared content.
+  const canWriteFullAdminContent = isAdminPage;
+  const canWriteAppSettings = isAdminPage;
+  const canWritePassengerGuestbook = isPassengerPage;
 
   // ===== ADMIN-MANAGED CONTENT INITIAL LOAD =====
   const initialAdminContent = useMemo(() => loadAdminContent(), []);
@@ -197,7 +206,7 @@ export default function App() {
   useEffect(() => {
     saveAppSettings(appSettings);
 
-    if (!sharedStateReady) return;
+    if (!sharedStateReady || !canWriteAppSettings) return;
 
     const settingsJson = JSON.stringify(appSettings);
 
@@ -207,7 +216,7 @@ export default function App() {
 
     lastSharedAppSettingsJsonRef.current = settingsJson;
     saveSharedAppSettingsSnapshot(appSettings);
-  }, [appSettings, sharedStateReady]);
+  }, [appSettings, sharedStateReady, canWriteAppSettings]);
 
   // ===== DRIVER PROFILE PERSISTENCE =====
   useEffect(() => {
@@ -240,20 +249,36 @@ export default function App() {
   }, [adminPin]);
 
   // ===== SHARED FIRESTORE ADMIN CONTENT SNAPSHOT =====
-  // Local saves above remain the immediate fallback. Once the initial shared
-  // load attempt finishes, any admin-managed content change writes one combined
-  // snapshot to Firestore for other devices to load later.
+  // Local saves above remain the immediate fallback.
+  // Admin route writes full shared admin content.
+  // Passenger route can only push guestbook entry changes while preserving the
+  // last shared admin fields already received from Firestore.
   useEffect(() => {
     if (!sharedStateReady) return;
 
-    const contentSnapshot = {
-      entries,
-      ads,
-      adminPin,
-      requestCategories,
-      driverProfile,
-      tipOptions,
-    };
+    const lastSharedAdminContent = lastSharedAdminContentJsonRef.current
+      ? JSON.parse(lastSharedAdminContentJsonRef.current)
+      : {};
+
+    let contentSnapshot = null;
+
+    if (canWriteFullAdminContent) {
+      contentSnapshot = {
+        entries,
+        ads,
+        adminPin,
+        requestCategories,
+        driverProfile,
+        tipOptions,
+      };
+    } else if (canWritePassengerGuestbook) {
+      contentSnapshot = {
+        ...lastSharedAdminContent,
+        entries,
+      };
+    }
+
+    if (!contentSnapshot) return;
 
     const contentJson = JSON.stringify(contentSnapshot);
 
@@ -271,6 +296,8 @@ export default function App() {
     driverProfile,
     tipOptions,
     sharedStateReady,
+    canWriteFullAdminContent,
+    canWritePassengerGuestbook,
   ]);
 
   // ===== PASSENGER SCREEN AUTO-RESET =====
