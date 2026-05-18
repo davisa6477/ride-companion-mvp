@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import NavButton from "./components/layout/NavButton.jsx";
 import { passengerNavItems } from "./config/navItems.js";
 import HomePage from "./components/pages/HomePage.jsx";
@@ -21,6 +21,7 @@ import {
   loadAdminContent,
   loadSharedAdminContent,
   saveSharedAdminContentSnapshot,
+  subscribeToSharedAdminContent,
   saveDriverProfile,
   saveTipOptions,
   saveAds,
@@ -32,6 +33,7 @@ import {
   loadAppSettings,
   loadSharedAppSettings,
   saveSharedAppSettingsSnapshot,
+  subscribeToSharedAppSettings,
   saveAppSettings,
 } from "./services/appSettingsService.js";
 
@@ -58,6 +60,8 @@ export default function App() {
   // Prevents the local fallback/default state from overwriting Firestore before
   // the initial shared load attempt finishes.
   const [sharedStateReady, setSharedStateReady] = useState(false);
+  const lastSharedAdminContentJsonRef = useRef("");
+  const lastSharedAppSettingsJsonRef = useRef("");
 
   // ===== GUESTBOOK STATE =====
   const [entries, setEntries] = useState(() => initialAdminContent.entries);
@@ -89,6 +93,41 @@ export default function App() {
   // ===== DERIVED DISPLAY DATA =====
   const featuredAd = useMemo(() => ads.find((ad) => ad.active), [ads]);
 
+  // ===== SHARED STATE NORMALIZERS =====
+  function normalizeSharedAdminContent(sharedContent = {}) {
+    return {
+      entries: sharedContent.entries || [],
+      ads: sharedContent.ads || [],
+      adminPin: sharedContent.adminPin || adminPin,
+      requestCategories: sharedContent.requestCategories || {},
+      driverProfile: sharedContent.driverProfile || driverProfile,
+      tipOptions: sharedContent.tipOptions || [],
+    };
+  }
+
+  function applySharedAdminContent(sharedContent) {
+    const normalizedContent = normalizeSharedAdminContent(sharedContent);
+
+    lastSharedAdminContentJsonRef.current =
+      JSON.stringify(normalizedContent);
+
+    setEntries(normalizedContent.entries);
+    setAds(normalizedContent.ads);
+    setAdminPin(normalizedContent.adminPin);
+    setRequestCategories(normalizedContent.requestCategories);
+    setDriverProfile(normalizedContent.driverProfile);
+    setTipOptions(normalizedContent.tipOptions);
+  }
+
+  function applySharedAppSettings(sharedSettings) {
+    if (!sharedSettings) return;
+
+    lastSharedAppSettingsJsonRef.current =
+      JSON.stringify(sharedSettings);
+
+    setAppSettings(sharedSettings);
+  }
+
   // ===== OPTIONAL FIRESTORE INITIAL LOAD =====
   // Local storage is still the immediate fallback. If shared Firestore content
   // exists, it replaces the local initial state after the app mounts.
@@ -105,16 +144,11 @@ export default function App() {
         if (!mounted) return;
 
         if (sharedContent) {
-          setEntries(sharedContent.entries || []);
-          setAds(sharedContent.ads || []);
-          setAdminPin(sharedContent.adminPin || adminPin);
-          setRequestCategories(sharedContent.requestCategories || {});
-          setDriverProfile(sharedContent.driverProfile || driverProfile);
-          setTipOptions(sharedContent.tipOptions || []);
+          applySharedAdminContent(sharedContent);
         }
 
         if (sharedSettings) {
-          setAppSettings(sharedSettings);
+          applySharedAppSettings(sharedSettings);
         }
       } catch (error) {
         console.error("Failed to load shared Firestore state:", error);
@@ -134,12 +168,44 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ===== LIVE FIRESTORE ADMIN CONTENT / SETTINGS SYNC =====
+  // Keeps passenger tablets and other open Admin pages current without refresh.
+  // Remote snapshots are remembered so the local persistence effects below do
+  // not immediately write the same snapshot back to Firestore.
+  useEffect(() => {
+    const unsubscribeContent = subscribeToSharedAdminContent((sharedContent) => {
+      if (!sharedContent) return;
+      applySharedAdminContent(sharedContent);
+      setSharedStateReady(true);
+    });
+
+    const unsubscribeSettings = subscribeToSharedAppSettings((sharedSettings) => {
+      if (!sharedSettings) return;
+      applySharedAppSettings(sharedSettings);
+      setSharedStateReady(true);
+    });
+
+    return () => {
+      if (unsubscribeContent) unsubscribeContent();
+      if (unsubscribeSettings) unsubscribeSettings();
+    };
+    // Run once. Helper functions intentionally use current state fallbacks.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ===== APP SETTINGS PERSISTENCE =====
   useEffect(() => {
     saveAppSettings(appSettings);
 
     if (!sharedStateReady) return;
 
+    const settingsJson = JSON.stringify(appSettings);
+
+    if (settingsJson === lastSharedAppSettingsJsonRef.current) {
+      return;
+    }
+
+    lastSharedAppSettingsJsonRef.current = settingsJson;
     saveSharedAppSettingsSnapshot(appSettings);
   }, [appSettings, sharedStateReady]);
 
@@ -180,14 +246,23 @@ export default function App() {
   useEffect(() => {
     if (!sharedStateReady) return;
 
-    saveSharedAdminContentSnapshot({
+    const contentSnapshot = {
       entries,
       ads,
       adminPin,
       requestCategories,
       driverProfile,
       tipOptions,
-    });
+    };
+
+    const contentJson = JSON.stringify(contentSnapshot);
+
+    if (contentJson === lastSharedAdminContentJsonRef.current) {
+      return;
+    }
+
+    lastSharedAdminContentJsonRef.current = contentJson;
+    saveSharedAdminContentSnapshot(contentSnapshot);
   }, [
     entries,
     ads,
