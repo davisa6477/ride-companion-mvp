@@ -26,6 +26,10 @@ import {
   saveRequestCategories,
   saveAdminPin,
 } from "./services/adminContentService.js";
+import {
+  loadAppSettings,
+  saveAppSettings,
+} from "./services/appSettingsService.js";
 
 export default function App() {
   // ===== ROUTE DETECTION =====
@@ -36,9 +40,15 @@ export default function App() {
   // ===== ADMIN-MANAGED CONTENT INITIAL LOAD =====
   const initialAdminContent = useMemo(() => loadAdminContent(), []);
 
+  // ===== APP SETTINGS INITIAL LOAD =====
+  const initialAppSettings = useMemo(() => loadAppSettings(), []);
+
   // ===== PASSENGER UI STATE =====
   const [page, setPage] = useState("home");
   const [appLanguage, setAppLanguage] = useState("en");
+
+  // ===== APP SETTINGS STATE =====
+  const [appSettings, setAppSettings] = useState(() => initialAppSettings);
 
   // ===== GUESTBOOK STATE =====
   const [entries, setEntries] = useState(() => initialAdminContent.entries);
@@ -69,6 +79,11 @@ export default function App() {
 
   // ===== DERIVED DISPLAY DATA =====
   const featuredAd = useMemo(() => ads.find((ad) => ad.active), [ads]);
+
+  // ===== APP SETTINGS PERSISTENCE =====
+  useEffect(() => {
+    saveAppSettings(appSettings);
+  }, [appSettings]);
 
   // ===== DRIVER PROFILE PERSISTENCE =====
   useEffect(() => {
