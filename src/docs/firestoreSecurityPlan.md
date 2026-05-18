@@ -24,7 +24,7 @@ Used for:
 ```txt
 adminConfig/content
 adminConfig/settings
-guestbook/entries
+guestbookEntries/{entryId}
 ```
 
 Used for:
@@ -88,10 +88,10 @@ Admins can approve/delete guestbookEntries.
 Guestbook entries have been split out of the combined adminConfig/content snapshot into:
 
 ```txt
-guestbook/entries
+guestbookEntries/{entryId}
 ```
 
-This is safer than storing entries beside driver profile, ads, tips, request categories, and admin PIN. A future improvement would be moving from a single guestbook/entries document to per-entry documents:
+This is safer than storing entries beside driver profile, ads, tips, request categories, and admin PIN. A future improvement would be moving from a single guestbookEntries/{entryId} document to per-entry documents:
 
 ```txt
 guestbookEntries/{entryId}

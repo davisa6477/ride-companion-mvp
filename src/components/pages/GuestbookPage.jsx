@@ -25,9 +25,12 @@ export default function GuestbookPage({
 
     if (!name.trim() || !message.trim()) return;
 
+    const createdAtMs = Date.now();
+
     setEntries([
       {
-        id: Date.now(),
+        id: String(createdAtMs),
+        createdAtMs,
         name: name.trim(),
         city: city.trim(),
         message: message.trim(),
