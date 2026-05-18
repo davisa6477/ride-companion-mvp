@@ -8,7 +8,7 @@ export const securityStatus = {
   severity: "warning",
   title: "MVP Security Notice",
   message:
-    "Firebase Auth support has been added for Admin identity, but Firestore rules are not tightened yet. The local PIN is still a browser UI gate during this transition.",
+    "Firebase Admin sign-in is now required before the local PIN can unlock Admin. Firestore rules still need to be tightened so the backend enforces the same protection.",
   nextStep:
-    "Next production step: create the Admin user in Firebase Auth, then publish restrictive Firestore rules in the next phase.",
+    "Next production step: publish restrictive Firestore rules so protected writes require Firebase Auth on the backend.",
 };
