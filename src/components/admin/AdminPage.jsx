@@ -293,6 +293,11 @@ export default function AdminPage({
     const unsubscribe = listenToFirebaseAdminAuth((user) => {
       setFirebaseUser(user);
       setFirebaseAuthLoading(false);
+
+      if (!user) {
+        setUnlocked(false);
+        setSessionExpiresAt(0);
+      }
     });
 
     return () => unsubscribe();
@@ -403,6 +408,12 @@ export default function AdminPage({
   // ===== LOGIN FUNCTIONS =====
   function unlock(e) {
     e.preventDefault();
+
+    if (!firebaseAdminSignedIn) {
+      setLoginError("Sign in with Firebase Admin before unlocking the local PIN.");
+      setPin("");
+      return;
+    }
 
     const result = verifyAdminPin({
       enteredPin: pin,
@@ -576,6 +587,7 @@ export default function AdminPage({
     Math.ceil(getAdminSessionRemainingMs(sessionExpiresAt) / 60000)
   );
   const firebaseAdminEmail = getFirebaseAdminEmail(firebaseUser);
+  const firebaseAdminSignedIn = Boolean(firebaseUser);
 
   // ===== LOCKED ADMIN LOGIN SCREEN =====
   if (!unlocked) {
@@ -717,13 +729,19 @@ export default function AdminPage({
               Local PIN Unlock
             </h3>
 
+            {!firebaseAdminSignedIn && (
+              <div className="rounded-2xl bg-amber-100 p-3 text-sm font-black text-amber-950">
+                Firebase Admin sign-in is required before Local PIN Unlock is available.
+              </div>
+            )}
+
             <input
               value={pin}
               onChange={(e) => setPin(e.target.value)}
               placeholder="Enter admin PIN"
               type="password"
               inputMode="numeric"
-              disabled={lockedOut}
+              disabled={lockedOut || !firebaseAdminSignedIn}
               className="rounded-2xl border border-slate-200 p-4 text-lg outline-none focus:ring-4 focus:ring-slate-200 disabled:opacity-50"
             />
 
@@ -734,10 +752,12 @@ export default function AdminPage({
             )}
 
             <button
-              disabled={lockedOut}
+              disabled={lockedOut || !firebaseAdminSignedIn}
               className="rounded-2xl bg-slate-950 p-4 text-lg font-black text-white shadow-lg disabled:opacity-50"
             >
-              {lockedOut
+              {!firebaseAdminSignedIn
+                ? "Sign in with Firebase first"
+                : lockedOut
                 ? `Locked ${formatLockoutTime(lockoutRemainingMs)}`
                 : "Unlock Local PIN"}
             </button>
