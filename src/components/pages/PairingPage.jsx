@@ -63,7 +63,11 @@ export default function PairingPage() {
         const localDevice = buildLocalPairedDeviceFromPairing(updatedPairing);
         saveLocalPairedDevice(localDevice);
         setPairedDevice(localDevice);
-        setMessage("Device paired successfully.");
+        setMessage("Device paired successfully. Loading paired app...");
+
+        window.setTimeout(() => {
+          window.location.href = "/";
+        }, 900);
       }
 
       if (updatedPairing.status === "rejected") {

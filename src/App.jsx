@@ -77,11 +77,20 @@ export default function App() {
   const canWriteAppSettings = isAdminPage;
   const canWriteGuestbookEntries = isAdminPage || isPassengerPage;
 
+  // ===== PAIRING GATE =====
+  // Passenger/device pages should not load straight into the app on an unpaired
+  // device. Admin and /pair remain accessible.
+  const deviceIsPaired = Boolean(initialPairedDevice?.deviceId);
+  const shouldRequirePairing = isPassengerPage && !deviceIsPaired;
+
   // ===== ADMIN-MANAGED CONTENT INITIAL LOAD =====
   const initialAdminContent = useMemo(() => loadAdminContent(), []);
 
   // ===== APP SETTINGS INITIAL LOAD =====
   const initialAppSettings = useMemo(() => loadAppSettings(), []);
+
+  // ===== PAIRED DEVICE INITIAL LOAD =====
+  const initialPairedDevice = useMemo(() => loadLocalPairedDevice(), []);
 
   // ===== PASSENGER UI STATE =====
   const [page, setPage] = useState("home");
@@ -89,6 +98,9 @@ export default function App() {
 
   // ===== APP SETTINGS STATE =====
   const [appSettings, setAppSettings] = useState(() => initialAppSettings);
+
+  // ===== PAIRED DEVICE STATE =====
+  const [pairedDevice] = useState(() => initialPairedDevice);
 
   // ===== FIRESTORE SYNC STATE =====
   // Prevents the local fallback/default state from overwriting Firestore before
@@ -522,6 +534,32 @@ export default function App() {
     };
   }, [isDriverConsole, isAdminPage]);
 
+  // ===== UNPAIRED PASSENGER DEVICE GATE =====
+  if (shouldRequirePairing) {
+    return (
+      <main className="min-h-screen bg-slate-950 p-4 text-slate-950 md:p-6">
+        <div className="mx-auto max-w-6xl">
+          <header className="mb-5 text-white">
+            <div className="text-sm font-bold uppercase tracking-[.25em] text-white/50">
+              Device Setup Required
+            </div>
+
+            <div className="text-3xl font-black">
+              Pair This Ride Companion Device
+            </div>
+
+            <p className="mt-2 max-w-2xl text-sm text-white/60">
+              This browser has not been paired yet. Pairing connects this tablet
+              or console to the Admin-approved Ride Companion setup.
+            </p>
+          </header>
+
+          <PairingPage />
+        </div>
+      </main>
+    );
+  }
+
   // ===== DRIVER CONSOLE ROUTE =====
   if (isDriverConsole) {
     return <DriverConsolePage />;
@@ -580,7 +618,9 @@ export default function App() {
             </div>
 
             <div className="shrink-0 rounded-full bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[.18em] text-white/60">
-              Passenger
+              {pairedDevice?.deviceType
+                ? DEVICE_TYPES[pairedDevice.deviceType]?.label || "Paired Device"
+                : "Passenger"}
             </div>
           </div>
 
