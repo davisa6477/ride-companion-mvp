@@ -3,6 +3,7 @@ import blackjackGameModule from "./blackjackGameModule.jsx";
 import rideBingoGameModule from "./rideBingoGameModule.jsx";
 import emojiGuessGameModule from "./emojiGuessGameModule.jsx";
 import ticTacToeGameModule from "./ticTacToeGameModule.jsx";
+import memoryMatchGameModule from "./memoryMatchGameModule.jsx";
 
 // ===== PLUG-AND-PLAY GAME MODULE LIST =====
 // To add a game:
@@ -19,4 +20,5 @@ export const gameModules = [
   rideBingoGameModule,
   emojiGuessGameModule,
   ticTacToeGameModule,
+  memoryMatchGameModule,
 ];

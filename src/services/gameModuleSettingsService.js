@@ -17,8 +17,8 @@ export function getGameModulesRef() {
   return doc(db, ADMIN_CONFIG_COLLECTION, GAME_MODULES_DOC_ID);
 }
 
-export function normalizeGameModuleSettings(settings = []) {
-  const defaults = getDefaultGameModuleSettings();
+export function normalizeGameModuleSettings(settings = [], importedModules = []) {
+  const defaults = getDefaultGameModuleSettings(importedModules);
   const settingsById = new Map(
     (Array.isArray(settings) ? settings : []).map((setting) => [
       setting.id,
@@ -29,9 +29,12 @@ export function normalizeGameModuleSettings(settings = []) {
   return defaults.map((defaultSetting) => {
     const setting = settingsById.get(defaultSetting.id);
 
+    const installed = setting?.installed ?? defaultSetting.installed ?? true;
+
     return {
       id: defaultSetting.id,
-      enabled: setting?.enabled ?? defaultSetting.enabled,
+      installed,
+      enabled: setting?.enabled ?? (installed && defaultSetting.enabled),
       order:
         typeof setting?.order === "number"
           ? setting.order
@@ -61,34 +64,34 @@ export function saveGameModuleSettings(settings = []) {
   }
 }
 
-export async function getSharedGameModuleSettings() {
+export async function getSharedGameModuleSettings(importedModules = []) {
   const snapshot = await getDoc(getGameModulesRef());
 
   if (!snapshot.exists()) {
     return null;
   }
 
-  return normalizeGameModuleSettings(snapshot.data().gameModules || []);
+  return normalizeGameModuleSettings(snapshot.data().gameModules || [], importedModules);
 }
 
-export async function saveSharedGameModuleSettings(settings = []) {
+export async function saveSharedGameModuleSettings(settings = [], importedModules = []) {
   return setDoc(
     getGameModulesRef(),
     {
-      gameModules: normalizeGameModuleSettings(settings),
+      gameModules: normalizeGameModuleSettings(settings, importedModules),
       updatedAt: serverTimestamp(),
     },
     { merge: true }
   );
 }
 
-export function listenToSharedGameModuleSettings(callback, onError) {
+export function listenToSharedGameModuleSettings(callback, onError, importedModules = []) {
   return onSnapshot(
     getGameModulesRef(),
     (snapshot) => {
       callback(
         snapshot.exists()
-          ? normalizeGameModuleSettings(snapshot.data().gameModules || [])
+          ? normalizeGameModuleSettings(snapshot.data().gameModules || [], importedModules)
           : null
       );
     },

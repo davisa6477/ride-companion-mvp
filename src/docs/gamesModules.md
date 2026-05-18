@@ -104,3 +104,16 @@ adminConfig/gameModules
 ```
 
 This does not upload new code. Brand-new games still require a code deployment.
+
+
+## Catalog / import model
+
+Modules can be bundled but not installed by default:
+
+```js
+installedByDefault: false,
+catalogOnlyByDefault: true,
+enabled: false
+```
+
+Those modules appear under `/admin > Games > Available Games` and can be imported into the current ride system.

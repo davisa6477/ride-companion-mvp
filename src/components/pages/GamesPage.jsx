@@ -6,7 +6,11 @@ import GameShell from "../layout/GameShell.jsx";
 import { applyGameModuleSettings, defaultGameId } from "../../config/gameRegistry.jsx";
 import { PAGE_FRAME_CLASS } from "../../config/pageFrame.js";
 
-export default function GamesPage({ t = (key) => key, gameModuleSettings = [] }) {
+export default function GamesPage({
+  t = (key) => key,
+  gameModuleSettings = [],
+  importedGameModules = [],
+}) {
   const [selectedGame, setSelectedGame] = useState(defaultGameId);
 
   function tr(key, fallback) {
@@ -18,12 +22,12 @@ export default function GamesPage({ t = (key) => key, gameModuleSettings = [] })
   // Game definitions live in config/gameRegistry.jsx.
   const games = useMemo(
     () =>
-      applyGameModuleSettings(gameModuleSettings).map((game) => ({
+      applyGameModuleSettings(gameModuleSettings, importedGameModules).map((game) => ({
         ...game,
         title: tr(game.titleKey, game.fallbackTitle),
         description: tr(game.descriptionKey, game.fallbackDescription),
       })),
-    [t, gameModuleSettings]
+    [t, gameModuleSettings, importedGameModules]
   );
 
   const selectedGameConfig =

@@ -11,9 +11,15 @@ import { securityStatus } from "../../config/securityStatus.js";
 import { DEVICE_TYPES } from "../../config/deviceTypes.js";
 import {
   baseGameRegistry,
-  getConfiguredGameRegistry,
+  getAvailableGameCatalog,
+  getInstalledGameRegistry,
 } from "../../config/gameRegistry.jsx";
 import { normalizeGameModuleSettings } from "../../services/gameModuleSettingsService.js";
+import {
+  exampleGameModuleManifest,
+  normalizeImportedGameModuleManifest,
+} from "../../services/importedGameModulesService.js";
+import { importableComponentKeys } from "../../config/importableGameComponents.jsx";
 import {
   approvePairingCode,
   clearAllPairingCodes,
@@ -117,6 +123,8 @@ export default function AdminPage({
   setAppSettings,
   gameModuleSettings = [],
   setGameModuleSettings,
+  importedGameModules = [],
+  setImportedGameModules,
 }) {
   // ===== ADMIN LOGIN STATE =====
   const [pin, setPin] = useState("");
@@ -149,6 +157,12 @@ export default function AdminPage({
   const [pendingPairingCodes, setPendingPairingCodes] = useState([]);
   const [pairedDevices, setPairedDevices] = useState([]);
   const [pairingMessage, setPairingMessage] = useState("");
+
+  // ===== DEVELOPER IMPORT STATE =====
+  const [developerManifestText, setDeveloperManifestText] = useState(
+    JSON.stringify(exampleGameModuleManifest, null, 2)
+  );
+  const [developerMessage, setDeveloperMessage] = useState("");
 
   // ===== ADMIN PIN CHANGE STATE =====
   const [newPin, setNewPin] = useState("");
@@ -542,20 +556,31 @@ export default function AdminPage({
   }
 
   // ===== GAME MODULE FUNCTIONS =====
-  function getConfiguredAdminGames() {
-    return getConfiguredGameRegistry(
-      normalizeGameModuleSettings(gameModuleSettings)
+  function getInstalledAdminGames() {
+    return getInstalledGameRegistry(
+      normalizeGameModuleSettings(gameModuleSettings, importedGameModules),
+      importedGameModules
+    );
+  }
+
+  function getAvailableAdminGames() {
+    return getAvailableGameCatalog(
+      normalizeGameModuleSettings(gameModuleSettings, importedGameModules),
+      importedGameModules
     );
   }
 
   function getGameSetting(gameId) {
-    return normalizeGameModuleSettings(gameModuleSettings).find(
+    return normalizeGameModuleSettings(gameModuleSettings, importedGameModules).find(
       (setting) => setting.id === gameId
     );
   }
 
   function updateGameModuleSetting(gameId, patch) {
-    const normalizedSettings = normalizeGameModuleSettings(gameModuleSettings);
+    const normalizedSettings = normalizeGameModuleSettings(
+      gameModuleSettings,
+      importedGameModules
+    );
 
     setGameModuleSettings(
       normalizedSettings.map((setting) =>
@@ -567,13 +592,56 @@ export default function AdminPage({
   function toggleGameModule(gameId) {
     const setting = getGameSetting(gameId);
     updateGameModuleSetting(gameId, {
+      installed: setting?.installed ?? true,
       enabled: !(setting?.enabled ?? true),
     });
   }
 
+  function installGameModule(gameId) {
+    const normalizedSettings = normalizeGameModuleSettings(
+      gameModuleSettings,
+      importedGameModules
+    );
+    const maxOrder = Math.max(
+      0,
+      ...normalizedSettings
+        .filter((setting) => setting.installed !== false)
+        .map((setting) => setting.order || 0)
+    );
+
+    setGameModuleSettings(
+      normalizedSettings.map((setting) =>
+        setting.id === gameId
+          ? {
+              ...setting,
+              installed: true,
+              enabled: true,
+              order: maxOrder + 10,
+            }
+          : setting
+      )
+    );
+  }
+
+  function removeGameModule(gameId) {
+    const confirmed = window.confirm(
+      "Remove this game from your installed games? You can import it again from Available Games."
+    );
+
+    if (!confirmed) return;
+
+    updateGameModuleSetting(gameId, {
+      installed: false,
+      enabled: false,
+    });
+  }
+
   function moveGameModule(gameId, direction) {
-    const configuredGames = getConfiguredAdminGames();
-    const normalizedSettings = normalizeGameModuleSettings(gameModuleSettings);
+    const configuredGames = getInstalledAdminGames();
+    const normalizedSettings = normalizeGameModuleSettings(
+      gameModuleSettings,
+      importedGameModules
+    );
 
     const index = configuredGames.findIndex((game) => game.id === gameId);
     const swapIndex = direction === "up" ? index - 1 : index + 1;
@@ -608,6 +676,71 @@ export default function AdminPage({
     if (!confirmed) return;
 
     setGameModuleSettings(normalizeGameModuleSettings([]));
+  }
+
+  // ===== DEVELOPER MODULE IMPORT FUNCTIONS =====
+  function importDeveloperGameModule() {
+    setDeveloperMessage("");
+
+    try {
+      const importedModule =
+        normalizeImportedGameModuleManifest(developerManifestText);
+
+      const existingBase = baseGameRegistry.some(
+        (game) => game.id === importedModule.id
+      );
+      const existingImported = importedGameModules.some(
+        (game) => game.id === importedModule.id
+      );
+
+      if (existingBase) {
+        setDeveloperMessage(
+          "That module id is already used by a built-in game."
+        );
+        return;
+      }
+
+      const nextImportedModules = existingImported
+        ? importedGameModules.map((game) =>
+            game.id === importedModule.id ? importedModule : game
+          )
+        : [...importedGameModules, importedModule];
+
+      setImportedGameModules(nextImportedModules);
+
+      const normalizedSettings = normalizeGameModuleSettings(
+        gameModuleSettings,
+        nextImportedModules
+      );
+
+      setGameModuleSettings(normalizedSettings);
+
+      setDeveloperMessage(
+        existingImported
+          ? "Imported module manifest updated."
+          : "Imported module added to Available Games."
+      );
+    } catch (error) {
+      setDeveloperMessage(error?.message || "Could not import module manifest.");
+    }
+  }
+
+  function removeDeveloperImportedModule(moduleId) {
+    const confirmed = window.confirm(
+      "Remove this imported module manifest? Installed copies will also disappear."
+    );
+
+    if (!confirmed) return;
+
+    const nextImportedModules = importedGameModules.filter(
+      (module) => module.id !== moduleId
+    );
+
+    setImportedGameModules(nextImportedModules);
+    setGameModuleSettings(
+      normalizeGameModuleSettings(gameModuleSettings, nextImportedModules)
+    );
+    setDeveloperMessage("Imported module removed.");
   }
 
   // ===== GUESTBOOK FUNCTIONS =====
@@ -988,7 +1121,7 @@ export default function AdminPage({
         </div>
 
         {/* ===== ADMIN INTERNAL PAGE NAVIGATION ===== */}
-        <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-9">
+        <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-10">
           {[
             ["guestbook", "Guestbook"],
             ["pin", "PIN"],
@@ -998,6 +1131,7 @@ export default function AdminPage({
             ["tips", "Tips"],
             ["requests", "Requests"],
             ["games", "Games"],
+            ["developer", "Developer"],
             ["ads", "Ads"],
           ].map(([sectionId, label]) => (
             <button
@@ -1733,7 +1867,7 @@ export default function AdminPage({
                   Game Modules
                 </h2>
                 <p className="mt-2 text-sm text-slate-500">
-                  Show, hide, and reorder installed game modules without changing game card sizing.
+                  Import in-house games, show/hide installed games, and reorder the passenger Games list without changing game card sizing.
                 </p>
               </div>
 
@@ -1747,7 +1881,7 @@ export default function AdminPage({
             </div>
 
             <div className="mt-5 grid gap-3">
-              {getConfiguredAdminGames().map((game, index) => {
+              {getInstalledAdminGames().map((game, index) => {
                 const setting = getGameSetting(game.id);
                 const enabled = setting?.enabled ?? game.enabled !== false;
 
@@ -1783,7 +1917,7 @@ export default function AdminPage({
                         <button
                           type="button"
                           onClick={() => moveGameModule(game.id, "down")}
-                          disabled={index === getConfiguredAdminGames().length - 1}
+                          disabled={index === getInstalledAdminGames().length - 1}
                           className="rounded-xl bg-white px-3 py-2 text-sm font-black text-slate-700 disabled:opacity-40"
                           title="Move down"
                         >
@@ -1800,6 +1934,14 @@ export default function AdminPage({
                           }`}
                         >
                           {enabled ? "Hide from Games" : "Show in Games"}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => removeGameModule(game.id)}
+                          className="rounded-xl bg-white px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-100"
+                        >
+                          Remove
                         </button>
                       </div>
                     </div>
@@ -1826,12 +1968,151 @@ export default function AdminPage({
               })}
             </div>
 
+            <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-4">
+              <div className="flex flex-col gap-1">
+                <h3 className="text-xl font-black text-slate-950">
+                  Available Games
+                </h3>
+                <p className="text-sm text-slate-500">
+                  In-house games available to import. Payment is not connected yet, so available catalog games can be added directly.
+                </p>
+              </div>
+
+              <div className="mt-4 grid gap-3">
+                {getAvailableAdminGames().length === 0 ? (
+                  <div className="rounded-2xl bg-slate-100 p-4 text-sm font-bold text-slate-500">
+                    No available catalog games right now.
+                  </div>
+                ) : (
+                  getAvailableAdminGames().map((game) => (
+                    <div
+                      key={game.id}
+                      className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                    >
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <div>
+                          <div className="text-lg font-black text-slate-950">
+                            {game.fallbackTitle}
+                          </div>
+                          <div className="text-sm text-slate-500">
+                            {game.fallbackDescription}
+                          </div>
+                          <div className="mt-1 text-xs font-bold text-slate-400">
+                            Module ID: {game.id} · {game.priceLabel || "Available"}
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => installGameModule(game.id)}
+                          className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-black text-white"
+                        >
+                          Import Game
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
             <div className="mt-5 rounded-2xl bg-slate-100 p-4 text-sm text-slate-600">
-              <div className="font-black text-slate-800">Add/Delete note</div>
+              <div className="font-black text-slate-800">Catalog note</div>
               <p className="mt-1">
-                The Admin page can activate, deactivate, hide, and reorder installed game modules.
-                Truly adding a brand-new game still requires adding a game component and module file to the codebase, then deploying.
+                Catalog games are still bundled in the deployed app build. Admin import controls whether a bundled in-house game is installed into this ride system.
+                Future payment/download infrastructure can replace the current free import button.
               </p>
+            </div>
+          </PageCard>
+        </div>
+      )}
+
+
+      {adminSection === "developer" && (
+        <div className="mx-auto w-full max-w-5xl">
+          <PageCard>
+            <div>
+              <h2 className="text-2xl font-black text-slate-950">
+                Developer Module Import
+              </h2>
+              <p className="mt-2 text-sm text-slate-500">
+                Paste a trusted in-house game module manifest. This stages bundled components into the Admin game catalog.
+              </p>
+            </div>
+
+            <div className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-900">
+              This does not execute arbitrary remote code. The manifest must use one of the bundled component keys:
+              <span className="ml-1 font-black">{importableComponentKeys.join(", ")}</span>.
+            </div>
+
+            <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_.85fr]">
+              <div>
+                <label className="text-sm font-black text-slate-700">
+                  Game Module Manifest JSON
+                </label>
+                <textarea
+                  value={developerManifestText}
+                  onChange={(event) => setDeveloperManifestText(event.target.value)}
+                  rows={18}
+                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-950 p-4 font-mono text-sm text-white outline-none"
+                />
+
+                <button
+                  type="button"
+                  onClick={importDeveloperGameModule}
+                  className="mt-3 rounded-xl bg-slate-950 px-4 py-2 text-sm font-black text-white"
+                >
+                  Import Manifest
+                </button>
+
+                {developerMessage && (
+                  <div className="mt-3 rounded-2xl bg-slate-100 p-3 text-sm font-bold text-slate-700">
+                    {developerMessage}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <h3 className="text-xl font-black text-slate-950">
+                  Imported Manifests
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  Imported manifests become Available Games until installed from /admin &gt; Games.
+                </p>
+
+                <div className="mt-4 grid gap-3">
+                  {importedGameModules.length === 0 ? (
+                    <div className="rounded-2xl bg-slate-100 p-4 text-sm font-bold text-slate-500">
+                      No imported manifests yet.
+                    </div>
+                  ) : (
+                    importedGameModules.map((module) => (
+                      <div
+                        key={module.id}
+                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                      >
+                        <div className="font-black text-slate-950">
+                          {module.fallbackTitle}
+                        </div>
+                        <div className="text-sm text-slate-500">
+                          {module.fallbackDescription}
+                        </div>
+                        <div className="mt-1 text-xs font-bold text-slate-400">
+                          ID: {module.id} · Component: {module.componentKey}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => removeDeveloperImportedModule(module.id)}
+                          className="mt-3 rounded-xl bg-white px-3 py-2 text-sm font-black text-rose-700 hover:bg-rose-100"
+                        >
+                          Remove Manifest
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
             </div>
           </PageCard>
         </div>

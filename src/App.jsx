@@ -74,6 +74,13 @@ import {
   saveGameModuleSettings,
   saveSharedGameModuleSettings,
 } from "./services/gameModuleSettingsService.js";
+import {
+  getSharedImportedGameModules,
+  listenToSharedImportedGameModules,
+  loadImportedGameModules,
+  saveImportedGameModules,
+  saveSharedImportedGameModules,
+} from "./services/importedGameModulesService.js";
 
 export default function App() {
   // ===== ROUTE DETECTION =====
@@ -101,6 +108,9 @@ export default function App() {
   // ===== APP SETTINGS INITIAL LOAD =====
   const initialAppSettings = useMemo(() => loadAppSettings(), []);
 
+  // ===== IMPORTED GAME MODULES INITIAL LOAD =====
+  const initialImportedGameModules = useMemo(() => loadImportedGameModules(), []);
+
   // ===== GAME MODULE SETTINGS INITIAL LOAD =====
   const initialGameModuleSettings = useMemo(() => loadGameModuleSettings(), []);
 
@@ -113,6 +123,11 @@ export default function App() {
 
   // ===== APP SETTINGS STATE =====
   const [appSettings, setAppSettings] = useState(() => initialAppSettings);
+
+  // ===== IMPORTED GAME MODULES STATE =====
+  const [importedGameModules, setImportedGameModules] = useState(
+    () => initialImportedGameModules
+  );
 
   // ===== GAME MODULE SETTINGS STATE =====
   const [gameModuleSettings, setGameModuleSettings] = useState(
@@ -151,6 +166,7 @@ export default function App() {
   const lastSharedTipOptionsJsonRef = useRef("");
   const lastSharedRequestCategoriesJsonRef = useRef("");
   const lastSharedGameModuleSettingsJsonRef = useRef("");
+  const lastSharedImportedGameModulesJsonRef = useRef("");
   const seededAdminContainersRef = useRef(false);
 
   // ===== GUESTBOOK STATE =====
@@ -262,6 +278,15 @@ export default function App() {
     setGameModuleSettings(sharedGameModuleSettings);
   }
 
+  function applySharedImportedGameModules(sharedImportedGameModules) {
+    if (!Array.isArray(sharedImportedGameModules)) return;
+
+    lastSharedImportedGameModulesJsonRef.current =
+      JSON.stringify(sharedImportedGameModules);
+
+    setImportedGameModules(sharedImportedGameModules);
+  }
+
   // ===== PAIRED DEVICE VALIDATION =====
   // LocalStorage alone is not trusted. If Admin removes pairedDevices/{deviceId}
   // in Firebase, this listener clears the local pairing and sends the browser
@@ -299,6 +324,7 @@ export default function App() {
           sharedDriverProfile,
           sharedTipOptions,
           sharedRequestCategories,
+          sharedImportedGameModules,
           sharedGameModuleSettings,
         ] = await Promise.all([
           loadSharedAdminContent(),
@@ -308,7 +334,8 @@ export default function App() {
           getSharedDriverProfile(),
           getSharedTipOptions(),
           getSharedRequestCategories(),
-          getSharedGameModuleSettings(),
+          getSharedImportedGameModules(),
+          getSharedGameModuleSettings(importedGameModules),
         ]);
 
         if (!mounted) return;
@@ -339,6 +366,10 @@ export default function App() {
 
         if (sharedRequestCategories) {
           applySharedRequestCategories(sharedRequestCategories);
+        }
+
+        if (Array.isArray(sharedImportedGameModules)) {
+          applySharedImportedGameModules(sharedImportedGameModules);
         }
 
         if (Array.isArray(sharedGameModuleSettings)) {
@@ -411,12 +442,22 @@ export default function App() {
       }
     );
 
+    const unsubscribeImportedGameModules = listenToSharedImportedGameModules(
+      (sharedImportedGameModules) => {
+        if (!Array.isArray(sharedImportedGameModules)) return;
+        applySharedImportedGameModules(sharedImportedGameModules);
+        setSharedStateReady(true);
+      }
+    );
+
     const unsubscribeGameModuleSettings = listenToSharedGameModuleSettings(
       (sharedGameModuleSettings) => {
         if (!Array.isArray(sharedGameModuleSettings)) return;
         applySharedGameModuleSettings(sharedGameModuleSettings);
         setSharedStateReady(true);
-      }
+      },
+      undefined,
+      importedGameModules
     );
 
     return () => {
@@ -427,6 +468,7 @@ export default function App() {
       if (unsubscribeDriverProfile) unsubscribeDriverProfile();
       if (unsubscribeTipOptions) unsubscribeTipOptions();
       if (unsubscribeRequestCategories) unsubscribeRequestCategories();
+      if (unsubscribeImportedGameModules) unsubscribeImportedGameModules();
       if (unsubscribeGameModuleSettings) unsubscribeGameModuleSettings();
     };
     // Run once. Helper functions intentionally use current state fallbacks.
@@ -529,6 +571,22 @@ export default function App() {
     saveSharedRequestCategories(requestCategories);
   }, [requestCategories, sharedStateReady, canWriteFullAdminContent]);
 
+  // ===== IMPORTED GAME MODULES PERSISTENCE =====
+  useEffect(() => {
+    saveImportedGameModules(importedGameModules);
+
+    if (!sharedStateReady || !canWriteFullAdminContent) return;
+
+    const importedGameModulesJson = JSON.stringify(importedGameModules);
+
+    if (importedGameModulesJson === lastSharedImportedGameModulesJsonRef.current) {
+      return;
+    }
+
+    lastSharedImportedGameModulesJsonRef.current = importedGameModulesJson;
+    saveSharedImportedGameModules(importedGameModules);
+  }, [importedGameModules, sharedStateReady, canWriteFullAdminContent]);
+
   // ===== GAME MODULE SETTINGS PERSISTENCE =====
   useEffect(() => {
     saveGameModuleSettings(gameModuleSettings);
@@ -542,7 +600,7 @@ export default function App() {
     }
 
     lastSharedGameModuleSettingsJsonRef.current = gameModuleSettingsJson;
-    saveSharedGameModuleSettings(gameModuleSettings);
+    saveSharedGameModuleSettings(gameModuleSettings, importedGameModules);
   }, [gameModuleSettings, sharedStateReady, canWriteFullAdminContent]);
 
   // ===== ADMIN PIN PERSISTENCE =====
@@ -587,12 +645,14 @@ export default function App() {
 
     saveSharedTipOptions(tipOptions);
     saveSharedRequestCategories(requestCategories);
-    saveSharedGameModuleSettings(gameModuleSettings);
+    saveSharedImportedGameModules(importedGameModules);
+    saveSharedGameModuleSettings(gameModuleSettings, importedGameModules);
     saveSharedAdminPinSnapshot(adminPin);
   }, [
     adminPin,
     tipOptions,
     requestCategories,
+    importedGameModules,
     gameModuleSettings,
     sharedStateReady,
     canWriteFullAdminContent,
@@ -771,6 +831,8 @@ export default function App() {
             setAppSettings={setAppSettings}
             gameModuleSettings={gameModuleSettings}
             setGameModuleSettings={setGameModuleSettings}
+            importedGameModules={importedGameModules}
+            setImportedGameModules={setImportedGameModules}
           />
         </div>
       </main>
@@ -836,7 +898,11 @@ export default function App() {
         {page === "ads" && <AdsPage ads={ads} t={t} />}
 
         {page === "games" && (
-          <GamesPage t={t} gameModuleSettings={gameModuleSettings} />
+          <GamesPage
+            t={t}
+            gameModuleSettings={gameModuleSettings}
+            importedGameModules={importedGameModules}
+          />
         )}
 
         {page === "weather" && <WeatherPage t={t} appSettings={appSettings} />}
