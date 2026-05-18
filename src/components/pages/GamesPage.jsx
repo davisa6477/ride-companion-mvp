@@ -1,66 +1,38 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Gamepad2 } from "lucide-react";
 
 import PageCard from "../layout/PageCard.jsx";
 import GameShell from "../layout/GameShell.jsx";
-import TriviaGame from "../games/TriviaGame.jsx";
-import BlackjackGame from "../games/BlackjackGame.jsx";
-import RideBingoGame from "../games/RideBingoGame.jsx";
-import EmojiGuessGame from "../games/EmojiGuessGame.jsx";
-import TicTacToeGame from "../games/TicTacToeGame.jsx";
+import { gameRegistry, defaultGameId } from "../../config/gameRegistry.jsx";
+import { PAGE_FRAME_CLASS } from "../../config/pageFrame.js";
 
 export default function GamesPage({ t = (key) => key }) {
-  const [selectedGame, setSelectedGame] = useState("trivia");
+  const [selectedGame, setSelectedGame] = useState(defaultGameId);
 
   function tr(key, fallback) {
     const translated = t(key);
     return translated === key ? fallback : translated;
   }
 
-  const games = [
-    {
-      id: "trivia",
-      title: tr("games_trivia", "Ride Trivia"),
-      description: tr("games_trivia_sub", "Quick trivia for short rides."),
-    },
-    {
-      id: "blackjack",
-      title: tr("games_blackjack", "Blackjack"),
-      description: tr(
-        "games_blackjack_sub",
-        "Classic card game against the dealer."
-      ),
-    },
-    {
-      id: "bingo",
-      title: tr("games_bingo", "Ride Bingo"),
-      description: tr("games_bingo_sub", "Spot ride moments and mark the card."),
-    },
-    {
-      id: "emoji",
-      title: tr("games_emoji", "Emoji Guess"),
-      description: tr("games_emoji_sub", "Guess the phrase from emoji clues."),
-    },
-    {
-      id: "tictactoe",
-      title: tr("games_ttt", "Tic Tac Toe"),
-      description: tr(
-        "games_ttt_sub",
-        "Play against a friend or the computer."
-      ),
-    },
-  ];
+  // ===== TRANSLATED GAME NAV ITEMS =====
+  // Game definitions live in config/gameRegistry.jsx.
+  const games = useMemo(
+    () =>
+      gameRegistry.map((game) => ({
+        ...game,
+        title: tr(game.titleKey, game.fallbackTitle),
+        description: tr(game.descriptionKey, game.fallbackDescription),
+      })),
+    [t]
+  );
 
-  function renderGame() {
-    if (selectedGame === "blackjack") return <BlackjackGame t={t} />;
-    if (selectedGame === "bingo") return <RideBingoGame t={t} />;
-    if (selectedGame === "emoji") return <EmojiGuessGame t={t} />;
-    if (selectedGame === "tictactoe") return <TicTacToeGame t={t} />;
-    return <TriviaGame t={t} />;
-  }
+  const selectedGameConfig =
+    games.find((game) => game.id === selectedGame) || games[0];
+
+  const SelectedGame = selectedGameConfig?.Component;
 
   return (
-    <div className="grid h-[calc(100vh-155px)] min-h-[520px] gap-5 md:h-[calc(100vh-170px)] lg:grid-cols-[240px_1fr]">
+    <div className={`grid gap-5 lg:grid-cols-[240px_1fr] ${PAGE_FRAME_CLASS}`}>
       <aside>
         <PageCard className="flex h-full min-h-0 flex-col overflow-hidden lg:sticky lg:top-4">
           <div className="flex items-center gap-3">
@@ -111,7 +83,7 @@ export default function GamesPage({ t = (key) => key }) {
       </aside>
 
       <section className="min-h-0 min-w-0">
-        <GameShell>{renderGame()}</GameShell>
+        <GameShell>{SelectedGame ? <SelectedGame t={t} /> : null}</GameShell>
       </section>
     </div>
   );

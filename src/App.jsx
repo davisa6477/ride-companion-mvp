@@ -1,17 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  Camera,
-  CloudSun,
-  Gamepad2,
-  Home,
-  Languages,
-  MapPin,
-  MessageSquareHeart,
-  Plane,
-  Store,
-} from "lucide-react";
-
 import NavButton from "./components/layout/NavButton.jsx";
+import { passengerNavItems } from "./config/navItems.js";
 import HomePage from "./components/pages/HomePage.jsx";
 import GuestbookPage from "./components/pages/GuestbookPage.jsx";
 import AdsPage from "./components/pages/AdsPage.jsx";
@@ -225,54 +214,6 @@ export default function App() {
     );
   }
 
-  // ===== PASSENGER NAVIGATION ITEMS =====
-  const navItems = [
-    { id: "home", labelKey: "nav_home", fallbackLabel: "Home", icon: Home },
-    { id: "local", labelKey: "nav_local", fallbackLabel: "Local", icon: MapPin },
-    {
-      id: "guestbook",
-      labelKey: "nav_guestbook",
-      fallbackLabel: "Guestbook",
-      icon: MessageSquareHeart,
-    },
-    { id: "ads", labelKey: "nav_deals", fallbackLabel: "Deals", icon: Store },
-    {
-      id: "games",
-      labelKey: "nav_games",
-      fallbackLabel: "Games",
-      icon: Gamepad2,
-    },
-    {
-      id: "weather",
-      labelKey: "nav_weather",
-      fallbackLabel: "Weather",
-      icon: CloudSun,
-    },
-    {
-      id: "requests",
-      labelKey: "nav_requests",
-      fallbackLabel: "Requests",
-      icon: MessageSquareHeart,
-    },
-    {
-      id: "flights",
-      labelKey: "nav_flights",
-      fallbackLabel: "Flights",
-      icon: Plane,
-    },
-    {
-      id: "mirror",
-      labelKey: "nav_mirror",
-      fallbackLabel: "Mirror",
-      icon: Camera,
-    },
-    {
-      id: "translate",
-      labelKey: "nav_translate",
-      fallbackLabel: "Translate",
-      icon: Languages,
-    },
-  ];
 
   function navLabel(item) {
     const translated = t(item.labelKey);
@@ -298,7 +239,7 @@ export default function App() {
             className="grid gap-2 rounded-3xl bg-white/10 p-2 backdrop-blur"
             style={{ gridTemplateColumns: "repeat(auto-fit, minmax(90px, 1fr))" }}
           >
-            {navItems.map((item) => (
+            {passengerNavItems.map((item) => (
               <NavButton
                 key={item.id}
                 active={page === item.id}
