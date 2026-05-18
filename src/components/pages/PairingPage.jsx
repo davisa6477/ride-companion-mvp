@@ -12,8 +12,8 @@ import {
   saveLocalPairedDevice,
 } from "../../services/devicePairingService.js";
 
-export default function PairingPage() {
-  const [deviceType, setDeviceType] = useState(DEFAULT_DEVICE_TYPE);
+export default function PairingPage({ defaultDeviceType = DEFAULT_DEVICE_TYPE, requiredDeviceType = null }) {
+  const [deviceType, setDeviceType] = useState(defaultDeviceType);
   const [deviceLabel, setDeviceLabel] = useState("");
   const [pairing, setPairing] = useState(null);
   const [pairedDevice, setPairedDevice] = useState(() => loadLocalPairedDevice());
@@ -47,6 +47,12 @@ export default function PairingPage() {
     setPairing(null);
     setMessage("This device pairing was cleared locally.");
   }
+
+  useEffect(() => {
+    if (requiredDeviceType) {
+      setDeviceType(requiredDeviceType);
+    }
+  }, [requiredDeviceType]);
 
   useEffect(() => {
     if (!pairing?.code) return undefined;
@@ -125,7 +131,8 @@ export default function PairingPage() {
               <select
                 value={deviceType}
                 onChange={(e) => setDeviceType(e.target.value)}
-                className="rounded-2xl border border-slate-200 p-3 outline-none"
+                disabled={Boolean(requiredDeviceType)}
+                className="rounded-2xl border border-slate-200 p-3 outline-none disabled:opacity-60"
               >
                 {deviceTypeOptions.map((type) => (
                   <option key={type.id} value={type.id}>
@@ -133,6 +140,13 @@ export default function PairingPage() {
                   </option>
                 ))}
               </select>
+
+              {requiredDeviceType && (
+                <p className="text-xs font-bold text-slate-500">
+                  This page requires pairing as{" "}
+                  {DEVICE_TYPES[requiredDeviceType]?.label || requiredDeviceType}.
+                </p>
+              )}
 
               <input
                 value={deviceLabel}

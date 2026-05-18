@@ -94,7 +94,11 @@ export default function App() {
   // Passenger/device pages should not load straight into the app on an unpaired
   // device. Admin and /pair remain accessible.
   const deviceIsPaired = Boolean(initialPairedDevice?.deviceId);
+  const pairedDeviceType = initialPairedDevice?.deviceType || "";
+  const deviceIsDriverConsole =
+    pairedDeviceType === DEVICE_TYPES.driverConsole.id;
   const shouldRequirePairing = isPassengerPage && !deviceIsPaired;
+  const shouldRequireConsolePairing = isDriverConsole && !deviceIsDriverConsole;
 
   // ===== PASSENGER UI STATE =====
   const [page, setPage] = useState("home");
@@ -580,6 +584,35 @@ export default function App() {
           </header>
 
           <PairingPage />
+        </div>
+      </main>
+    );
+  }
+
+  // ===== UNPAIRED / WRONG-TYPE DRIVER CONSOLE GATE =====
+  if (shouldRequireConsolePairing) {
+    return (
+      <main className="min-h-screen bg-slate-950 p-4 text-slate-950 md:p-6">
+        <div className="mx-auto max-w-6xl">
+          <header className="mb-5 text-white">
+            <div className="text-sm font-bold uppercase tracking-[.25em] text-white/50">
+              Console Setup Required
+            </div>
+
+            <div className="text-3xl font-black">
+              Pair This Driver Console
+            </div>
+
+            <p className="mt-2 max-w-2xl text-sm text-white/60">
+              This browser must be paired as a Driver Console before it can
+              manage passenger requests.
+            </p>
+          </header>
+
+          <PairingPage
+            defaultDeviceType={DEVICE_TYPES.driverConsole.id}
+            requiredDeviceType={DEVICE_TYPES.driverConsole.id}
+          />
         </div>
       </main>
     );
