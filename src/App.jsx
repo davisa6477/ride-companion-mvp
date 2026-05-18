@@ -931,7 +931,7 @@ export default function App() {
           <GuestbookPage entries={entries} setEntries={setEntries} t={t} />
         )}
 
-        {page === "ads" && <AdsPage ads={ads} t={t} />}
+        {page === "ads" && <AdsPage ads={ads} appLanguage={appLanguage} t={t} />}
 
         {page === "games" && (
           <GamesPage

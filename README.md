@@ -1,35 +1,84 @@
 # Ride Companion MVP
 
-A Vite + React prototype for a rideshare passenger tablet.
+Ride Companion is a passenger-tablet and driver-console web app for rideshare/gig use. It is built with Vite, React, Firebase, and Cloudflare Pages Functions.
 
 ## Run locally
-
-1. Install Node.js.
-2. Open this folder in VS Code.
-3. Run:
 
 ```bash
 npm install
 npm run dev
 ```
 
-Then open the local URL Vite gives you.
+Camera, location, and some device APIs usually require HTTPS or `localhost`.
 
-## File map
+## Build
 
-- `src/App.jsx` — main app state and navigation
-- `src/components/HomePage.jsx` — Meet Your Driver home screen
-- `src/components/GuestbookPage.jsx` — passenger guestbook
-- `src/components/AdsPage.jsx` — local deals display
-- `src/components/TriviaPage.jsx` — trivia page
-- `src/components/WeatherPage.jsx` — weather page
-- `src/components/RequestsPage.jsx` — passenger ride requests
-- `src/components/MirrorPage.jsx` — front-camera mirror
-- `src/components/AdminPage.jsx` — driver admin controls
-- `src/data/defaultRequests.js` — default request categories
-- `src/data/starterAds.js` — starter local ads
-- `src/data/trivia.js` — trivia helpers and fallback questions
+```bash
+npm run build
+```
 
-## Notes
+If a copied `node_modules` folder causes native binding errors, delete `node_modules` and reinstall:
 
-Camera and location features usually require HTTPS or localhost.
+```bash
+rm -rf node_modules package-lock.json
+npm install
+npm run build
+```
+
+On Windows, delete the `node_modules` folder manually or use GitHub Desktop/VS Code terminal.
+
+## Current routes
+
+```txt
+/           Passenger tablet
+/console    Driver console
+/admin      End-user driver/admin controls
+/developer  Private developer portal
+/pair       Device pairing
+/api/catalog Cloudflare Pages Function scaffold
+```
+
+## Current source map
+
+```txt
+src/App.jsx                          Main routing, shared state, passenger shell
+src/components/pages/                 Passenger-facing pages
+src/components/console/               Driver console
+src/components/admin/                 End-user admin
+src/components/developer/             Private developer portal
+src/components/games/                 Game components
+src/components/games/modules/         Game module metadata
+src/components/layout/                Shared layout components
+src/components/shared/                Shared UI such as TipModal
+src/config/                           App config, nav, page frame, registry
+src/services/                         Firebase/local/API service layer
+src/translations/                     Static UI translations
+src/utils/                            Shared helpers
+functions/api/                        Cloudflare Pages Functions
+```
+
+## Deployment notes
+
+Do not deploy or commit generated folders such as:
+
+```txt
+node_modules
+dist
+.git
+```
+
+For Cloudflare Pages Functions, keep this folder at the project root:
+
+```txt
+functions
+```
+
+## Beta focus areas remaining
+
+```txt
+Admin organization/cleanup
+Firestore/security rules review
+Developer portal hardening
+Final beta smoke-test checklist
+Production API/payment/entitlement design
+```
