@@ -9,4 +9,6 @@ export const FIRESTORE_PATHS = {
   adminConfig: "adminConfig",
   adminContentDocId: "content",
   appSettingsDocId: "settings",
+  guestbook: "guestbook",
+  guestbookEntriesDocId: "entries",
 };

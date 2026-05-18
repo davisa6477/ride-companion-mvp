@@ -52,6 +52,20 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // ===== GUESTBOOK CONTAINER =====
+    match /guestbook/entries {
+      // Passenger tablet and Admin need to read guestbook entries.
+      allow read: if true;
+
+      // Current MVP stores entries as an array in one document.
+      // Production should either:
+      // 1. require admin auth for updates, or
+      // 2. move to per-entry documents so passengers can create only their own pending entry.
+      allow create, update: if isAdmin();
+
+      allow delete: if isAdmin();
+    }
+
     // ===== DEFAULT DENY =====
     match /{document=**} {
       allow read, write: if false;

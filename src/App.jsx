@@ -36,6 +36,11 @@ import {
   subscribeToSharedAppSettings,
   saveAppSettings,
 } from "./services/appSettingsService.js";
+import {
+  getSharedGuestbookEntries,
+  listenToSharedGuestbookEntries,
+  saveSharedGuestbookEntries,
+} from "./services/firestoreGuestbookService.js";
 
 export default function App() {
   // ===== ROUTE DETECTION =====
@@ -47,10 +52,10 @@ export default function App() {
   // ===== FIRESTORE WRITE SCOPE =====
   // Until Firebase Auth/security rules are added, shared Firestore writes are
   // intentionally route-scoped. Admin can write full shared content/settings.
-  // Passenger pages can only write guestbook-related shared content.
+  // Passenger pages can only write guestbook entries in the separate guestbook container.
   const canWriteFullAdminContent = isAdminPage;
   const canWriteAppSettings = isAdminPage;
-  const canWritePassengerGuestbook = isPassengerPage;
+  const canWriteGuestbookEntries = isAdminPage || isPassengerPage;
 
   // ===== ADMIN-MANAGED CONTENT INITIAL LOAD =====
   const initialAdminContent = useMemo(() => loadAdminContent(), []);
@@ -71,6 +76,7 @@ export default function App() {
   const [sharedStateReady, setSharedStateReady] = useState(false);
   const lastSharedAdminContentJsonRef = useRef("");
   const lastSharedAppSettingsJsonRef = useRef("");
+  const lastSharedGuestbookEntriesJsonRef = useRef("");
 
   // ===== GUESTBOOK STATE =====
   const [entries, setEntries] = useState(() => initialAdminContent.entries);
@@ -105,7 +111,6 @@ export default function App() {
   // ===== SHARED STATE NORMALIZERS =====
   function normalizeSharedAdminContent(sharedContent = {}) {
     return {
-      entries: sharedContent.entries || [],
       ads: sharedContent.ads || [],
       adminPin: sharedContent.adminPin || adminPin,
       requestCategories: sharedContent.requestCategories || {},
@@ -120,7 +125,6 @@ export default function App() {
     lastSharedAdminContentJsonRef.current =
       JSON.stringify(normalizedContent);
 
-    setEntries(normalizedContent.entries);
     setAds(normalizedContent.ads);
     setAdminPin(normalizedContent.adminPin);
     setRequestCategories(normalizedContent.requestCategories);
@@ -137,6 +141,15 @@ export default function App() {
     setAppSettings(sharedSettings);
   }
 
+  function applySharedGuestbookEntries(sharedEntries) {
+    if (!Array.isArray(sharedEntries)) return;
+
+    lastSharedGuestbookEntriesJsonRef.current =
+      JSON.stringify(sharedEntries);
+
+    setEntries(sharedEntries);
+  }
+
   // ===== OPTIONAL FIRESTORE INITIAL LOAD =====
   // Local storage is still the immediate fallback. If shared Firestore content
   // exists, it replaces the local initial state after the app mounts.
@@ -145,10 +158,12 @@ export default function App() {
 
     async function loadSharedState() {
       try {
-        const [sharedContent, sharedSettings] = await Promise.all([
-          loadSharedAdminContent(),
-          loadSharedAppSettings(),
-        ]);
+        const [sharedContent, sharedSettings, sharedGuestbookEntries] =
+          await Promise.all([
+            loadSharedAdminContent(),
+            loadSharedAppSettings(),
+            getSharedGuestbookEntries(),
+          ]);
 
         if (!mounted) return;
 
@@ -158,6 +173,10 @@ export default function App() {
 
         if (sharedSettings) {
           applySharedAppSettings(sharedSettings);
+        }
+
+        if (Array.isArray(sharedGuestbookEntries)) {
+          applySharedGuestbookEntries(sharedGuestbookEntries);
         }
       } catch (error) {
         console.error("Failed to load shared Firestore state:", error);
@@ -194,9 +213,16 @@ export default function App() {
       setSharedStateReady(true);
     });
 
+    const unsubscribeGuestbook = listenToSharedGuestbookEntries((sharedEntries) => {
+      if (!Array.isArray(sharedEntries)) return;
+      applySharedGuestbookEntries(sharedEntries);
+      setSharedStateReady(true);
+    });
+
     return () => {
       if (unsubscribeContent) unsubscribeContent();
       if (unsubscribeSettings) unsubscribeSettings();
+      if (unsubscribeGuestbook) unsubscribeGuestbook();
     };
     // Run once. Helper functions intentionally use current state fallbacks.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -236,7 +262,18 @@ export default function App() {
   // ===== GUESTBOOK PERSISTENCE =====
   useEffect(() => {
     saveGuestbookEntries(entries);
-  }, [entries]);
+
+    if (!sharedStateReady || !canWriteGuestbookEntries) return;
+
+    const entriesJson = JSON.stringify(entries);
+
+    if (entriesJson === lastSharedGuestbookEntriesJsonRef.current) {
+      return;
+    }
+
+    lastSharedGuestbookEntriesJsonRef.current = entriesJson;
+    saveSharedGuestbookEntries(entries);
+  }, [entries, sharedStateReady, canWriteGuestbookEntries]);
 
   // ===== REQUEST CATEGORIES PERSISTENCE =====
   useEffect(() => {
@@ -249,36 +286,18 @@ export default function App() {
   }, [adminPin]);
 
   // ===== SHARED FIRESTORE ADMIN CONTENT SNAPSHOT =====
-  // Local saves above remain the immediate fallback.
-  // Admin route writes full shared admin content.
-  // Passenger route can only push guestbook entry changes while preserving the
-  // last shared admin fields already received from Firestore.
+  // Guestbook entries now sync through services/firestoreGuestbookService.js.
+  // This snapshot is admin-only and contains non-guestbook admin content.
   useEffect(() => {
-    if (!sharedStateReady) return;
+    if (!sharedStateReady || !canWriteFullAdminContent) return;
 
-    const lastSharedAdminContent = lastSharedAdminContentJsonRef.current
-      ? JSON.parse(lastSharedAdminContentJsonRef.current)
-      : {};
-
-    let contentSnapshot = null;
-
-    if (canWriteFullAdminContent) {
-      contentSnapshot = {
-        entries,
-        ads,
-        adminPin,
-        requestCategories,
-        driverProfile,
-        tipOptions,
-      };
-    } else if (canWritePassengerGuestbook) {
-      contentSnapshot = {
-        ...lastSharedAdminContent,
-        entries,
-      };
-    }
-
-    if (!contentSnapshot) return;
+    const contentSnapshot = {
+      ads,
+      adminPin,
+      requestCategories,
+      driverProfile,
+      tipOptions,
+    };
 
     const contentJson = JSON.stringify(contentSnapshot);
 
@@ -289,7 +308,6 @@ export default function App() {
     lastSharedAdminContentJsonRef.current = contentJson;
     saveSharedAdminContentSnapshot(contentSnapshot);
   }, [
-    entries,
     ads,
     adminPin,
     requestCategories,
@@ -297,7 +315,6 @@ export default function App() {
     tipOptions,
     sharedStateReady,
     canWriteFullAdminContent,
-    canWritePassengerGuestbook,
   ]);
 
   // ===== PASSENGER SCREEN AUTO-RESET =====

@@ -24,6 +24,7 @@ Used for:
 ```txt
 adminConfig/content
 adminConfig/settings
+guestbook/entries
 ```
 
 Used for:
@@ -31,9 +32,9 @@ Used for:
 - ads/deals,
 - tip options,
 - request categories,
-- guestbook moderation data,
 - admin PIN while still in MVP mode,
-- default ZIP/location settings.
+- default ZIP/location settings,
+- guestbook entries in a separate guestbook container.
 
 ## Current Risk
 
@@ -82,9 +83,21 @@ Passengers cannot approve guestbookEntries.
 Admins can approve/delete guestbookEntries.
 ```
 
-## Suggested Next Refactor
+## Guestbook Container Status
 
-Before writing final production rules, consider splitting guestbook entries out of the combined adminConfig/content snapshot. The combined snapshot makes it harder to safely allow passenger guestbook writes without also letting passenger clients overwrite other admin fields.
+Guestbook entries have been split out of the combined adminConfig/content snapshot into:
+
+```txt
+guestbook/entries
+```
+
+This is safer than storing entries beside driver profile, ads, tips, request categories, and admin PIN. A future improvement would be moving from a single guestbook/entries document to per-entry documents:
+
+```txt
+guestbookEntries/{entryId}
+```
+
+That would allow even cleaner create/update/delete rules.
 
 ## Important Note
 
