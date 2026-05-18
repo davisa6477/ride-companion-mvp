@@ -25,6 +25,8 @@ export default function PairingPage({
   const [message, setMessage] = useState("");
   const [creating, setCreating] = useState(false);
 
+  const deviceName = deviceLabel.trim();
+
   const deviceTypeOptions = useMemo(() => Object.values(DEVICE_TYPES), []);
   const pairedDeviceMatchesRequired =
     !requiredDeviceType || pairedDevice?.deviceType === requiredDeviceType;
@@ -46,12 +48,18 @@ export default function PairingPage({
 
   async function startPairing() {
     setMessage("");
+
+    if (!deviceName) {
+      setMessage("Name this device before creating a pairing code.");
+      return;
+    }
+
     setCreating(true);
 
     try {
       const nextPairing = await createPairingCode({
         deviceType: requiredDeviceType || deviceType,
-        deviceLabel,
+        deviceLabel: deviceName,
       });
 
       setPairing(nextPairing);
@@ -204,17 +212,26 @@ export default function PairingPage({
                 </p>
               )}
 
+              <label className="text-sm font-black text-slate-700">
+                Device Name
+              </label>
+
               <input
                 value={deviceLabel}
                 onChange={(e) => setDeviceLabel(e.target.value)}
-                placeholder="Optional label, like Backseat tablet"
+                placeholder="Example: Backseat tablet or Driver phone"
+                maxLength={60}
                 className="rounded-2xl border border-slate-200 p-3 outline-none"
               />
+
+              <p className="text-xs text-slate-500">
+                Required. This name helps you recognize and remove the right device later.
+              </p>
 
               <button
                 type="button"
                 onClick={startPairing}
-                disabled={creating}
+                disabled={creating || !deviceName}
                 className="flex items-center justify-center gap-2 rounded-2xl bg-slate-950 p-4 font-black text-white disabled:opacity-50"
               >
                 <RefreshCw size={18} />
@@ -237,6 +254,10 @@ export default function PairingPage({
                 </div>
 
                 <div className="mt-3 text-sm text-white/60">
+                  Device: {pairing.deviceLabel || deviceName}
+                </div>
+
+                <div className="mt-1 text-sm text-white/60">
                   Status: {pairing.status || "pending"}
                 </div>
               </div>

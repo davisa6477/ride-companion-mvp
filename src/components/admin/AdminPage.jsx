@@ -1356,9 +1356,9 @@ export default function AdminPage({
                             <div className="mt-1 text-sm font-bold text-slate-600">
                               {DEVICE_TYPES[item.deviceType]?.label || item.deviceType}
                             </div>
-                            {item.deviceLabel && (
+                            {(item.deviceName || item.deviceLabel) && (
                               <div className="text-sm text-slate-500">
-                                {item.deviceLabel}
+                                {item.deviceName || item.deviceLabel}
                               </div>
                             )}
                           </div>
@@ -1406,9 +1406,9 @@ export default function AdminPage({
                         <div className="font-black text-slate-950">
                           {DEVICE_TYPES[device.deviceType]?.label || device.deviceType}
                         </div>
-                        {device.deviceLabel && (
+                        {(device.deviceName || device.deviceLabel) && (
                           <div className="text-sm text-slate-500">
-                            {device.deviceLabel}
+                            {device.deviceName || device.deviceLabel}
                           </div>
                         )}
                         <div className="mt-1 break-all text-xs text-slate-400">
