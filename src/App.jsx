@@ -19,6 +19,7 @@ import { setPassengerLanguage } from "./services/rideSessionService.js";
 // ===== ADMIN CONTENT SERVICE =====
 import {
   loadAdminContent,
+  loadSharedAdminContent,
   saveDriverProfile,
   saveTipOptions,
   saveAds,
@@ -28,6 +29,7 @@ import {
 } from "./services/adminContentService.js";
 import {
   loadAppSettings,
+  loadSharedAppSettings,
   saveAppSettings,
 } from "./services/appSettingsService.js";
 
@@ -79,6 +81,47 @@ export default function App() {
 
   // ===== DERIVED DISPLAY DATA =====
   const featuredAd = useMemo(() => ads.find((ad) => ad.active), [ads]);
+
+  // ===== OPTIONAL FIRESTORE INITIAL LOAD =====
+  // Local storage is still the immediate fallback. If shared Firestore content
+  // exists, it replaces the local initial state after the app mounts.
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadSharedState() {
+      try {
+        const [sharedContent, sharedSettings] = await Promise.all([
+          loadSharedAdminContent(),
+          loadSharedAppSettings(),
+        ]);
+
+        if (!mounted) return;
+
+        if (sharedContent) {
+          setEntries(sharedContent.entries || []);
+          setAds(sharedContent.ads || []);
+          setAdminPin(sharedContent.adminPin || adminPin);
+          setRequestCategories(sharedContent.requestCategories || {});
+          setDriverProfile(sharedContent.driverProfile || driverProfile);
+          setTipOptions(sharedContent.tipOptions || []);
+        }
+
+        if (sharedSettings) {
+          setAppSettings(sharedSettings);
+        }
+      } catch (error) {
+        console.error("Failed to load shared Firestore state:", error);
+      }
+    }
+
+    loadSharedState();
+
+    return () => {
+      mounted = false;
+    };
+    // Run once on mount. Local values are immediate fallback.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ===== APP SETTINGS PERSISTENCE =====
   useEffect(() => {
