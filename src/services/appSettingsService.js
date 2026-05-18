@@ -1,4 +1,9 @@
 import { defaultAppSettings } from "../config/defaultSettings.js";
+import {
+  getSharedAppSettings,
+  listenToSharedAppSettings,
+  saveSharedAppSettings,
+} from "./firestoreAdminService.js";
 
 const APP_SETTINGS_STORAGE_KEY = "rideCompanion.appSettings";
 
@@ -50,4 +55,46 @@ export function updateAppSettings(patch) {
 
   saveAppSettings(nextSettings);
   return nextSettings;
+}
+
+// ===== FIRESTORE BRIDGE HELPERS =====
+// These are intentionally not wired into App.jsx yet.
+// Later phases will call them to sync settings across admin/passenger devices.
+export async function loadSharedAppSettings() {
+  const localSettings = loadAppSettings();
+
+  try {
+    const sharedSettings = await getSharedAppSettings();
+
+    if (!sharedSettings) {
+      return localSettings;
+    }
+
+    return {
+      ...defaultAppSettings,
+      ...localSettings,
+      ...sharedSettings,
+    };
+  } catch (error) {
+    console.error("Failed to load shared app settings:", error);
+    return localSettings;
+  }
+}
+
+export async function saveSharedAppSettingsSnapshot(settings) {
+  try {
+    await saveSharedAppSettings({
+      ...defaultAppSettings,
+      ...settings,
+    });
+
+    return true;
+  } catch (error) {
+    console.error("Failed to save shared app settings:", error);
+    return false;
+  }
+}
+
+export function subscribeToSharedAppSettings(callback, onError) {
+  return listenToSharedAppSettings(callback, onError);
 }

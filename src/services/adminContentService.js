@@ -21,6 +21,11 @@ import {
 
 import { starterAds } from "../data/starterAds.js";
 import { defaultRequestCategories as starterRequestCategories } from "../data/defaultRequests.js";
+import {
+  getSharedAdminContent,
+  listenToSharedAdminContent,
+  saveSharedAdminContent,
+} from "./firestoreAdminService.js";
 
 // ===== ADMIN CONTENT SERVICE =====
 // Current implementation still uses localStorage through storageService.js.
@@ -36,6 +41,44 @@ export function loadAdminContent() {
     driverProfile: loadDriverProfile(defaultDriverProfile),
     tipOptions: loadTipOptions([]),
   };
+}
+
+// ===== FIRESTORE BRIDGE HELPERS =====
+// These are intentionally not wired into App.jsx yet.
+// Later phases will call them to load/save shared admin content while keeping
+// localStorage fallback available.
+export async function loadSharedAdminContent() {
+  const localContent = loadAdminContent();
+
+  try {
+    const sharedContent = await getSharedAdminContent();
+
+    if (!sharedContent) {
+      return localContent;
+    }
+
+    return {
+      ...localContent,
+      ...sharedContent,
+    };
+  } catch (error) {
+    console.error("Failed to load shared admin content:", error);
+    return localContent;
+  }
+}
+
+export async function saveSharedAdminContentSnapshot(content) {
+  try {
+    await saveSharedAdminContent(content);
+    return true;
+  } catch (error) {
+    console.error("Failed to save shared admin content:", error);
+    return false;
+  }
+}
+
+export function subscribeToSharedAdminContent(callback, onError) {
+  return listenToSharedAdminContent(callback, onError);
 }
 
 export {
