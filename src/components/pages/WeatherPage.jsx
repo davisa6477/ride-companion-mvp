@@ -5,6 +5,7 @@
 import React, { useEffect, useState } from "react";
 import { CloudRain, CloudSun, Thermometer } from "lucide-react";
 import PageCard from "../layout/PageCard.jsx";
+import { PAGE_FRAME_CLASS } from "../../config/pageFrame.js";
 import {
   getCoordinatesForUsZip,
   getFallbackLocationSettings,
@@ -243,7 +244,7 @@ export default function WeatherPage({ t = (key) => key, appSettings = {} }) {
       await loadFallbackWeather(
         tr(
           "weather_location_blocked",
-          "Location permission was blocked or unavailable, so Joplin, MO fallback weather is being shown."
+          "Location permission was blocked or unavailable, so saved ride-area weather is being shown."
         )
       );
       return;
@@ -261,9 +262,9 @@ export default function WeatherPage({ t = (key) => key, appSettings = {} }) {
   const visual = weather ? getWeatherVisual(weather.code) : null;
 
   return (
-    <PageCard className="min-h-[520px]">
+    <PageCard className={`${PAGE_FRAME_CLASS} flex min-h-0 flex-col overflow-hidden`}>
       {/* ===== PAGE HEADER ===== */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="shrink-0 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-3">
           <div className="rounded-2xl bg-slate-100 p-3">
             <CloudSun />
@@ -277,7 +278,7 @@ export default function WeatherPage({ t = (key) => key, appSettings = {} }) {
             <p className="text-slate-600">
               {tr(
                 "weather_subtitle",
-                "Uses device location when available, with a Joplin fallback for preview/testing."
+                "Uses device location when available, with the saved ride-area fallback when needed."
               )}
             </p>
           </div>
@@ -295,9 +296,10 @@ export default function WeatherPage({ t = (key) => key, appSettings = {} }) {
         </button>
       </div>
 
+      <div className="mt-5 min-h-0 flex-1 overflow-y-auto pr-1">
       {/* ===== ERROR / FALLBACK MESSAGE ===== */}
       {errorMessage && (
-        <div className="mt-5 rounded-2xl bg-amber-100 p-4 font-bold text-amber-900">
+        <div className="rounded-2xl bg-amber-100 p-4 font-bold text-amber-900">
           {errorMessage}
         </div>
       )}
@@ -387,7 +389,7 @@ export default function WeatherPage({ t = (key) => key, appSettings = {} }) {
           <p className="mt-2 max-w-md text-white/60">
             {tr(
               "weather_loading_subtitle",
-              "Trying device location first. If unavailable, Joplin fallback weather will appear."
+              "Trying device location first. If unavailable, saved ride-area weather will appear."
             )}
           </p>
         </div>
@@ -400,6 +402,7 @@ export default function WeatherPage({ t = (key) => key, appSettings = {} }) {
           "Weather data is loaded from Open-Meteo. Device location is used only to request local conditions and is not saved."
         )}
       </p>
+      </div>
     </PageCard>
   );
 }

@@ -3,12 +3,12 @@
 const weather = {
   en: {
     weather_title: "Local Weather",
-    weather_subtitle: "Uses device location when available, with a Joplin fallback for preview/testing.",
+    weather_subtitle: "Uses device location when available, with the saved ride-area fallback when needed.",
     weather_loading: "Loading weather",
     weather_refresh: "Refresh Weather",
     weather_error: "Could not load weather right now.",
     weather_fallback_message: "Using Joplin, MO fallback weather because device location is unavailable in preview.",
-    weather_location_blocked: "Location permission was blocked or unavailable, so Joplin, MO fallback weather is being shown.",
+    weather_location_blocked: "Location permission was blocked or unavailable, so saved ride-area weather is being shown.",
     weather_current_location: "Current device location",
     weather_feels_like: "Feels like",
     weather_today: "Today",
@@ -18,7 +18,7 @@ const weather = {
     weather_chance: "chance",
     weather_current_precip: "Current precipitation",
     weather_wind: "Wind",
-    weather_loading_subtitle: "Trying device location first. If unavailable, Joplin fallback weather will appear.",
+    weather_loading_subtitle: "Trying device location first. If unavailable, saved ride-area weather will appear.",
     weather_footer: "Weather data is loaded from Open-Meteo. Device location is used only to request local conditions and is not saved.",
   },
 
