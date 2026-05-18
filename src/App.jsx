@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import NavButton from "./components/layout/NavButton.jsx";
 import { passengerNavItems } from "./config/navItems.js";
+import { DEVICE_TYPES } from "./config/deviceTypes.js";
 import HomePage from "./components/pages/HomePage.jsx";
 import GuestbookPage from "./components/pages/GuestbookPage.jsx";
 import AdsPage from "./components/pages/AdsPage.jsx";
@@ -11,11 +12,13 @@ import RequestsPage from "./components/pages/RequestsPage.jsx";
 import FlightCheckerPage from "./components/pages/FlightCheckerPage.jsx";
 import MirrorPage from "./components/pages/MirrorPage.jsx";
 import TranslationPage from "./components/pages/TranslationPage.jsx";
+import PairingPage from "./components/pages/PairingPage.jsx";
 import AdminPage from "./components/admin/AdminPage.jsx";
 import DriverConsolePage from "./components/console/DriverConsolePage.jsx";
 
 import { createTranslator } from "./data/translations.js";
 import { setPassengerLanguage } from "./services/rideSessionService.js";
+import { loadLocalPairedDevice } from "./services/devicePairingService.js";
 // ===== ADMIN CONTENT SERVICE =====
 import {
   loadAdminContent,
@@ -67,7 +70,8 @@ export default function App() {
   const pathname = window.location.pathname;
   const isDriverConsole = pathname === "/console";
   const isAdminPage = pathname === "/admin";
-  const isPassengerPage = !isDriverConsole && !isAdminPage;
+  const isPairingPage = pathname === "/pair";
+  const isPassengerPage = !isDriverConsole && !isAdminPage && !isPairingPage;
 
   // ===== FIRESTORE WRITE SCOPE =====
   // Until Firebase Auth/security rules are added, shared Firestore writes are
@@ -77,12 +81,6 @@ export default function App() {
   const canWriteAppSettings = isAdminPage;
   const canWriteGuestbookEntries = isAdminPage || isPassengerPage;
 
-  // ===== PAIRING GATE =====
-  // Passenger/device pages should not load straight into the app on an unpaired
-  // device. Admin and /pair remain accessible.
-  const deviceIsPaired = Boolean(initialPairedDevice?.deviceId);
-  const shouldRequirePairing = isPassengerPage && !deviceIsPaired;
-
   // ===== ADMIN-MANAGED CONTENT INITIAL LOAD =====
   const initialAdminContent = useMemo(() => loadAdminContent(), []);
 
@@ -91,6 +89,12 @@ export default function App() {
 
   // ===== PAIRED DEVICE INITIAL LOAD =====
   const initialPairedDevice = useMemo(() => loadLocalPairedDevice(), []);
+
+  // ===== PAIRING GATE =====
+  // Passenger/device pages should not load straight into the app on an unpaired
+  // device. Admin and /pair remain accessible.
+  const deviceIsPaired = Boolean(initialPairedDevice?.deviceId);
+  const shouldRequirePairing = isPassengerPage && !deviceIsPaired;
 
   // ===== PASSENGER UI STATE =====
   const [page, setPage] = useState("home");
@@ -532,7 +536,28 @@ export default function App() {
         window.removeEventListener(eventName, resetPassengerScreenTimer);
       });
     };
-  }, [isDriverConsole, isAdminPage]);
+  }, [isDriverConsole, isAdminPage, isPairingPage]);
+
+  // ===== DEVICE PAIRING ROUTE =====
+  if (isPairingPage) {
+    return (
+      <main className="min-h-screen bg-slate-950 p-4 text-slate-950 md:p-6">
+        <div className="mx-auto max-w-6xl">
+          <header className="mb-5 text-white">
+            <div className="text-sm font-bold uppercase tracking-[.25em] text-white/50">
+              Device Pairing
+            </div>
+
+            <div className="text-3xl font-black">
+              Ride Companion Pairing
+            </div>
+          </header>
+
+          <PairingPage />
+        </div>
+      </main>
+    );
+  }
 
   // ===== UNPAIRED PASSENGER DEVICE GATE =====
   if (shouldRequirePairing) {
