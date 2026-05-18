@@ -5,6 +5,7 @@
 
 import PageCard from "../layout/PageCard.jsx";
 import { PAGE_FRAME_CLASS } from "../../config/pageFrame.js";
+import { getTranslatedField } from "../../utils/dynamicFields.js";
 
 export default function AdsPage({
   ads = [],
@@ -15,15 +16,6 @@ export default function AdsPage({
   function tr(key, fallback) {
     const translated = t(key);
     return translated === key ? fallback : translated;
-  }
-
-  // ===== DYNAMIC AD TRANSLATION HELPER =====
-  // Future-ready support for manually translated ad fields.
-  // If an ad has headlineTranslations.es or descriptionTranslations.es,
-  // the passenger page will show that text when appLanguage is "es".
-  function getTranslatedAdField(ad, field) {
-    const translationKey = `${field}Translations`;
-    return ad?.[translationKey]?.[appLanguage]?.trim() || ad?.[field] || "";
   }
 
   // ===== ACTIVE ADS ONLY =====
@@ -58,8 +50,10 @@ export default function AdsPage({
       {activeAds.length > 0 && (
         <div className="grid gap-4 md:grid-cols-2">
           {activeAds.map((ad) => {
-            const headline = getTranslatedAdField(ad, "headline");
-            const description = getTranslatedAdField(ad, "description");
+            const businessName = getTranslatedField(ad, "businessName", appLanguage);
+            const headline = getTranslatedField(ad, "headline", appLanguage);
+            const description = getTranslatedField(ad, "description", appLanguage);
+            const category = getTranslatedField(ad, "category", appLanguage);
 
             return (
               <div
@@ -67,7 +61,7 @@ export default function AdsPage({
                 className="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 p-5"
               >
                 <div className="min-w-0 break-words text-2xl font-black leading-tight text-slate-950">
-                  {ad.businessName}
+                  {businessName}
                 </div>
 
                 {headline && (
@@ -82,9 +76,9 @@ export default function AdsPage({
                   </p>
                 )}
 
-                {ad.category && (
+                {category && (
                   <div className="mt-4 inline-flex max-w-full break-words rounded-full bg-white px-3 py-1 text-xs font-black uppercase tracking-wide text-slate-500">
-                    {ad.category}
+                    {category}
                   </div>
                 )}
               </div>

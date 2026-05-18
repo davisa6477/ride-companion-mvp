@@ -8,6 +8,7 @@ import { MessageSquareHeart, QrCode, ShieldCheck, Store } from "lucide-react";
 import PageCard from "../layout/PageCard.jsx";
 import TipModal from "../shared/TipModal.jsx";
 import { PAGE_FRAME_CLASS } from "../../config/pageFrame.js";
+import { getTranslatedField } from "../../utils/dynamicFields.js";
 
 export default function HomePage({
   setPage,
@@ -31,14 +32,27 @@ export default function HomePage({
     return translated === key ? fallback : translated;
   }
 
-  // ===== DRIVER PROFILE DYNAMIC TRANSLATION HELPERS =====
-  const translatedBio =
-    driverProfile.bioTranslations?.[appLanguage]?.trim() ||
-    driverProfile.bio;
+  // ===== DYNAMIC FIELD TRANSLATION FALLBACKS =====
+  // Prefer manually supplied selected-language text, otherwise default to the
+  // English/admin-entered field.
+  const translatedBio = getTranslatedField(driverProfile, "bio", appLanguage);
+  const translatedLocalTip = getTranslatedField(
+    driverProfile,
+    "localTip",
+    appLanguage
+  );
 
-  const translatedLocalTip =
-    driverProfile.localTipTranslations?.[appLanguage]?.trim() ||
-    driverProfile.localTip;
+  const featuredBusinessName = getTranslatedField(
+    featuredAd,
+    "businessName",
+    appLanguage
+  );
+  const featuredHeadline = getTranslatedField(featuredAd, "headline", appLanguage);
+  const featuredDescription = getTranslatedField(
+    featuredAd,
+    "description",
+    appLanguage
+  );
 
   return (
     <div className={`grid gap-5 lg:grid-cols-[1.2fr_.8fr] ${PAGE_FRAME_CLASS}`}>
@@ -200,15 +214,15 @@ export default function HomePage({
             </div>
 
             <h3 className="min-w-0 break-words text-2xl font-black leading-tight text-slate-950">
-              {featuredAd.businessName}
+              {featuredBusinessName}
             </h3>
 
             <p className="mt-1 min-w-0 break-words font-bold leading-snug text-slate-700">
-              {featuredAd.headline}
+              {featuredHeadline}
             </p>
 
             <p className="mt-2 min-w-0 break-words text-slate-600">
-              {featuredAd.description}
+              {featuredDescription}
             </p>
           </PageCard>
         )}
