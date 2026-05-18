@@ -5,6 +5,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import PageCard from "../layout/PageCard.jsx";
+import { PAGE_FRAME_CLASS } from "../../config/pageFrame.js";
 import { categoryDescriptions } from "../../data/defaultRequests.js";
 import {
   listenToPassengerRequests,
@@ -126,10 +127,10 @@ export default function RequestsPage({
   }
 
   return (
-    <div className="grid gap-4">
-      {/* ===== PAGE HEADER ===== */}
-      <PageCard>
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+    <>
+      <PageCard className={`${PAGE_FRAME_CLASS} flex min-h-0 flex-col overflow-hidden`}>
+        {/* ===== PAGE HEADER ===== */}
+        <div className="shrink-0 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h2 className="text-3xl font-black text-slate-950">
               {tr("requests_title", "Mid-Ride Requests")}
@@ -156,16 +157,16 @@ export default function RequestsPage({
         </div>
 
         {sendError && (
-          <div className="mt-4 rounded-2xl bg-rose-100 p-4 text-sm font-black text-rose-900">
+          <div className="mt-4 shrink-0 rounded-2xl bg-rose-100 p-4 text-sm font-black text-rose-900">
             {sendError}
           </div>
         )}
-      </PageCard>
 
-      {/* ===== LIVE REQUEST STATUS CARDS ===== */}
-      {visibleRequests.length > 0 && (
-        <PageCard>
-          <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="mt-5 min-h-0 flex-1 overflow-y-auto pr-1">
+          {/* ===== LIVE REQUEST STATUS CARDS ===== */}
+          {visibleRequests.length > 0 && (
+            <section className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <h3 className="text-xl font-black text-slate-950">
                 {tr("requests_status_title", "Request Status")}
@@ -180,12 +181,12 @@ export default function RequestsPage({
             </div>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2">
-            {visibleRequests.slice(0, 4).map((request) => (
-              <div
-                key={request.id}
-                className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-              >
+              <div className="grid gap-3 md:grid-cols-2">
+                {visibleRequests.slice(0, 4).map((request) => (
+                  <div
+                    key={request.id}
+                    className="rounded-2xl border border-slate-200 bg-white p-4"
+                  >
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="rounded-full bg-slate-200 px-3 py-1 text-xs font-black uppercase tracking-wide text-slate-700">
                     {request.category
@@ -209,15 +210,15 @@ export default function RequestsPage({
                 <div className="mt-2 text-sm font-bold text-slate-500">
                   {formatRequestTime(request.createdAt)}
                 </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </PageCard>
-      )}
+            </section>
+          )}
 
-      {/* ===== REQUEST CATEGORY GRID ===== */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {Object.entries(requestCategories).map(([category]) => (
+          {/* ===== REQUEST CATEGORY GRID ===== */}
+          <div className={`${visibleRequests.length > 0 ? "mt-4" : ""} grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`}>
+            {Object.entries(requestCategories).map(([category]) => (
           <button
             key={category}
             type="button"
@@ -231,9 +232,11 @@ export default function RequestsPage({
             <div className="mt-2 text-sm font-medium text-slate-500">
               {getCategoryDescription(category)}
             </div>
-          </button>
-        ))}
-      </div>
+            </button>
+          ))}
+          </div>
+        </div>
+      </PageCard>
 
       {/* ===== REQUEST SELECTION MODAL ===== */}
       {selectedCategory && (
@@ -280,6 +283,6 @@ export default function RequestsPage({
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
