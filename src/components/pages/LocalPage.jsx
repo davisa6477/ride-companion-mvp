@@ -6,6 +6,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { MapPin, Search } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import PageCard from "../layout/PageCard.jsx";
+import { PAGE_FRAME_CLASS } from "../../config/pageFrame.js";
 import {
   buildNearSearchLabel,
   getFallbackLocationSettings,
@@ -231,9 +232,9 @@ export default function LocalPage({ t = (key) => key, appSettings = {} }) {
   );
 
   return (
-    <PageCard className="min-h-[520px]">
+    <PageCard className={`${PAGE_FRAME_CLASS} flex min-h-0 flex-col overflow-hidden`}>
       {/* ===== PAGE HEADER ===== */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="shrink-0 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-3">
           <div className="rounded-2xl bg-slate-100 p-3">
             <MapPin />
@@ -258,7 +259,8 @@ export default function LocalPage({ t = (key) => key, appSettings = {} }) {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-5 lg:grid-cols-[.95fr_1.05fr]">
+      <div className="mt-5 min-h-0 flex-1 overflow-y-auto pr-1">
+        <div className="grid gap-5 lg:grid-cols-[.95fr_1.05fr]">
         {/* ===== CATEGORY CARDS ===== */}
         <div className="grid gap-3">
           <div className="grid gap-3 sm:grid-cols-2">
@@ -351,6 +353,7 @@ export default function LocalPage({ t = (key) => key, appSettings = {} }) {
               )}
             </div>
           )}
+        </div>
         </div>
       </div>
     </PageCard>
