@@ -97,6 +97,19 @@ export default function App() {
   // ===== PAIRED DEVICE INITIAL LOAD =====
   const initialPairedDevice = useMemo(() => loadLocalPairedDevice(), []);
 
+  // ===== PASSENGER UI STATE =====
+  const [page, setPage] = useState("home");
+  const [appLanguage, setAppLanguage] = useState("en");
+
+  // ===== APP SETTINGS STATE =====
+  const [appSettings, setAppSettings] = useState(() => initialAppSettings);
+
+  // ===== PAIRED DEVICE STATE =====
+  const [pairedDevice, setPairedDevice] = useState(() => initialPairedDevice);
+  const [pairingValidationReady, setPairingValidationReady] = useState(
+    () => !initialPairedDevice?.deviceId
+  );
+
   // ===== PAIRING GATE =====
   // Passenger/device pages should not load straight into the app on an unpaired
   // device. Admin and /pair remain accessible.
@@ -110,19 +123,6 @@ export default function App() {
     isPassengerPage && pairingValidationReady && !deviceIsPaired;
   const shouldRequireConsolePairing =
     isDriverConsole && pairingValidationReady && !deviceIsDriverConsole;
-
-  // ===== PASSENGER UI STATE =====
-  const [page, setPage] = useState("home");
-  const [appLanguage, setAppLanguage] = useState("en");
-
-  // ===== APP SETTINGS STATE =====
-  const [appSettings, setAppSettings] = useState(() => initialAppSettings);
-
-  // ===== PAIRED DEVICE STATE =====
-  const [pairedDevice, setPairedDevice] = useState(() => initialPairedDevice);
-  const [pairingValidationReady, setPairingValidationReady] = useState(
-    () => !initialPairedDevice?.deviceId
-  );
 
   // ===== FIRESTORE SYNC STATE =====
   // Prevents the local fallback/default state from overwriting Firestore before
