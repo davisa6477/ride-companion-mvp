@@ -8,6 +8,12 @@ const triviaGameModule = {
   fallbackTitle: "Ride Trivia",
   descriptionKey: "games_trivia_sub",
   fallbackDescription: "Quick trivia for short rides.",
+  translationKeys: [
+  "games_trivia",
+  "games_trivia_sub",
+  "trivia_saved_source",
+  "trivia_backup_source",
+  ],
   Component: TriviaGame,
 };
 

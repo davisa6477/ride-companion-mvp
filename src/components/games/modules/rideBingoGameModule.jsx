@@ -8,6 +8,12 @@ const rideBingoGameModule = {
   fallbackTitle: "Ride Bingo",
   descriptionKey: "games_bingo_sub",
   fallbackDescription: "Spot ride moments and mark the card.",
+  translationKeys: [
+  "games_bingo",
+  "games_bingo_sub",
+  "bingo_free_space",
+  "bingo_success",
+  ],
   Component: RideBingoGame,
 };
 

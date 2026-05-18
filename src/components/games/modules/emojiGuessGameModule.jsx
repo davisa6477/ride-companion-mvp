@@ -8,6 +8,13 @@ const emojiGuessGameModule = {
   fallbackTitle: "Emoji Guess",
   descriptionKey: "games_emoji_sub",
   fallbackDescription: "Guess the phrase from emoji clues.",
+  translationKeys: [
+  "games_emoji",
+  "games_emoji_sub",
+  "emoji_start_message",
+  "emoji_correct",
+  "emoji_answer_revealed",
+  ],
   Component: EmojiGuessGame,
 };
 

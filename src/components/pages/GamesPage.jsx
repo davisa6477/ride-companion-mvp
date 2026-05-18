@@ -3,10 +3,10 @@ import { Gamepad2 } from "lucide-react";
 
 import PageCard from "../layout/PageCard.jsx";
 import GameShell from "../layout/GameShell.jsx";
-import { gameRegistry, defaultGameId } from "../../config/gameRegistry.jsx";
+import { applyGameModuleSettings, defaultGameId } from "../../config/gameRegistry.jsx";
 import { PAGE_FRAME_CLASS } from "../../config/pageFrame.js";
 
-export default function GamesPage({ t = (key) => key }) {
+export default function GamesPage({ t = (key) => key, gameModuleSettings = [] }) {
   const [selectedGame, setSelectedGame] = useState(defaultGameId);
 
   function tr(key, fallback) {
@@ -18,12 +18,12 @@ export default function GamesPage({ t = (key) => key }) {
   // Game definitions live in config/gameRegistry.jsx.
   const games = useMemo(
     () =>
-      gameRegistry.map((game) => ({
+      applyGameModuleSettings(gameModuleSettings).map((game) => ({
         ...game,
         title: tr(game.titleKey, game.fallbackTitle),
         description: tr(game.descriptionKey, game.fallbackDescription),
       })),
-    [t]
+    [t, gameModuleSettings]
   );
 
   const selectedGameConfig =

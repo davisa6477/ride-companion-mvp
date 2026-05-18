@@ -5,10 +5,12 @@
 // This page is intentionally kept off passenger navigation and accessed by /admin.
 
 import React, { useEffect, useRef, useState } from "react";
-import { Link, Lock, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Link, Lock, Plus, Trash2 } from "lucide-react";
 import PageCard from "../layout/PageCard.jsx";
 import { securityStatus } from "../../config/securityStatus.js";
 import { DEVICE_TYPES } from "../../config/deviceTypes.js";
+import { baseGameRegistry } from "../../config/gameRegistry.jsx";
+import { normalizeGameModuleSettings } from "../../services/gameModuleSettingsService.js";
 import {
   approvePairingCode,
   clearAllPairingCodes,
@@ -110,6 +112,8 @@ export default function AdminPage({
   setTipOptions,
   appSettings,
   setAppSettings,
+  gameModuleSettings = [],
+  setGameModuleSettings,
 }) {
   // ===== ADMIN LOGIN STATE =====
   const [pin, setPin] = useState("");
@@ -534,6 +538,65 @@ export default function AdminPage({
     }
   }
 
+  // ===== GAME MODULE FUNCTIONS =====
+  function getGameSetting(gameId) {
+    return normalizeGameModuleSettings(gameModuleSettings).find(
+      (setting) => setting.id === gameId
+    );
+  }
+
+  function updateGameModuleSetting(gameId, patch) {
+    const normalizedSettings = normalizeGameModuleSettings(gameModuleSettings);
+
+    setGameModuleSettings(
+      normalizedSettings.map((setting) =>
+        setting.id === gameId ? { ...setting, ...patch } : setting
+      )
+    );
+  }
+
+  function toggleGameModule(gameId) {
+    const setting = getGameSetting(gameId);
+    updateGameModuleSetting(gameId, {
+      enabled: !(setting?.enabled ?? true),
+    });
+  }
+
+  function moveGameModule(gameId, direction) {
+    const normalizedSettings = normalizeGameModuleSettings(gameModuleSettings)
+      .sort((a, b) => (a.order || 999) - (b.order || 999));
+
+    const index = normalizedSettings.findIndex((setting) => setting.id === gameId);
+    const swapIndex = direction === "up" ? index - 1 : index + 1;
+
+    if (index < 0 || swapIndex < 0 || swapIndex >= normalizedSettings.length) {
+      return;
+    }
+
+    const nextSettings = [...normalizedSettings];
+    const currentOrder = nextSettings[index].order;
+    nextSettings[index] = {
+      ...nextSettings[index],
+      order: nextSettings[swapIndex].order,
+    };
+    nextSettings[swapIndex] = {
+      ...nextSettings[swapIndex],
+      order: currentOrder,
+    };
+
+    setGameModuleSettings(nextSettings);
+  }
+
+  function restoreDefaultGameModules() {
+    const confirmed = window.confirm(
+      "Restore default game module order and activation?"
+    );
+
+    if (!confirmed) return;
+
+    setGameModuleSettings(normalizeGameModuleSettings([]));
+  }
+
   // ===== GUESTBOOK FUNCTIONS =====
   function approveEntry(id) {
     setEntries(
@@ -912,7 +975,7 @@ export default function AdminPage({
         </div>
 
         {/* ===== ADMIN INTERNAL PAGE NAVIGATION ===== */}
-        <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-8">
+        <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-9">
           {[
             ["guestbook", "Guestbook"],
             ["pin", "PIN"],
@@ -921,6 +984,7 @@ export default function AdminPage({
             ["pairing", "Pairing"],
             ["tips", "Tips"],
             ["requests", "Requests"],
+            ["games", "Games"],
             ["ads", "Ads"],
           ].map(([sectionId, label]) => (
             <button
@@ -1643,6 +1707,122 @@ export default function AdminPage({
         </div>
       </PageCard>
 
+        </div>
+      )}
+
+
+      {adminSection === "games" && (
+        <div className="mx-auto w-full max-w-5xl">
+          <PageCard>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h2 className="text-2xl font-black text-slate-950">
+                  Game Modules
+                </h2>
+                <p className="mt-2 text-sm text-slate-500">
+                  Activate, deactivate, remove from the passenger Games list, and reorder installed game modules.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={restoreDefaultGameModules}
+                className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-200"
+              >
+                Restore Defaults
+              </button>
+            </div>
+
+            <div className="mt-5 grid gap-3">
+              {baseGameRegistry.map((game) => {
+                const setting = getGameSetting(game.id);
+                const enabled = setting?.enabled ?? game.enabled !== false;
+
+                return (
+                  <div
+                    key={game.id}
+                    className={`rounded-2xl border p-4 ${
+                      enabled
+                        ? "border-emerald-200 bg-emerald-50"
+                        : "border-slate-200 bg-slate-50"
+                    }`}
+                  >
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                      <div>
+                        <div className="text-lg font-black text-slate-950">
+                          {game.fallbackTitle}
+                        </div>
+                        <div className="text-sm text-slate-500">
+                          {game.fallbackDescription}
+                        </div>
+                        <div className="mt-1 text-xs font-bold text-slate-400">
+                          Module ID: {game.id} · Translation keys: {(game.translationKeys || []).length}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => moveGameModule(game.id, "up")}
+                          className="rounded-xl bg-white px-3 py-2 text-sm font-black text-slate-700"
+                          title="Move up"
+                        >
+                          <ArrowUp size={16} />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => moveGameModule(game.id, "down")}
+                          className="rounded-xl bg-white px-3 py-2 text-sm font-black text-slate-700"
+                          title="Move down"
+                        >
+                          <ArrowDown size={16} />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => toggleGameModule(game.id)}
+                          className={`rounded-xl px-4 py-2 text-sm font-black ${
+                            enabled
+                              ? "bg-rose-100 text-rose-700 hover:bg-rose-200"
+                              : "bg-emerald-600 text-white hover:bg-emerald-700"
+                          }`}
+                        >
+                          {enabled ? "Deactivate" : "Activate"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {(game.translationKeys || []).length > 0 && (
+                      <details className="mt-3 rounded-xl bg-white/70 p-3">
+                        <summary className="cursor-pointer text-sm font-black text-slate-700">
+                          Translation checklist
+                        </summary>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {game.translationKeys.map((key) => (
+                            <span
+                              key={key}
+                              className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600"
+                            >
+                              {key}
+                            </span>
+                          ))}
+                        </div>
+                      </details>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-5 rounded-2xl bg-slate-100 p-4 text-sm text-slate-600">
+              <div className="font-black text-slate-800">Add/Delete note</div>
+              <p className="mt-1">
+                The Admin page can activate, deactivate, hide, and reorder installed game modules.
+                Truly adding a brand-new game still requires adding a game component and module file to the codebase, then deploying.
+              </p>
+            </div>
+          </PageCard>
         </div>
       )}
 

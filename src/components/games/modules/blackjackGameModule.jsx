@@ -8,6 +8,14 @@ const blackjackGameModule = {
   fallbackTitle: "Blackjack",
   descriptionKey: "games_blackjack_sub",
   fallbackDescription: "Classic card game against the dealer.",
+  translationKeys: [
+  "games_blackjack",
+  "games_blackjack_sub",
+  "blackjack_deal",
+  "blackjack_hit",
+  "blackjack_stand",
+  "blackjack_split",
+  ],
   Component: BlackjackGame,
 };
 

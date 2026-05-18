@@ -67,6 +67,13 @@ import {
   listenToSharedRequestCategories,
   saveSharedRequestCategories,
 } from "./services/firestoreRequestCategoriesService.js";
+import {
+  getSharedGameModuleSettings,
+  listenToSharedGameModuleSettings,
+  loadGameModuleSettings,
+  saveGameModuleSettings,
+  saveSharedGameModuleSettings,
+} from "./services/gameModuleSettingsService.js";
 
 export default function App() {
   // ===== ROUTE DETECTION =====
@@ -94,6 +101,9 @@ export default function App() {
   // ===== APP SETTINGS INITIAL LOAD =====
   const initialAppSettings = useMemo(() => loadAppSettings(), []);
 
+  // ===== GAME MODULE SETTINGS INITIAL LOAD =====
+  const initialGameModuleSettings = useMemo(() => loadGameModuleSettings(), []);
+
   // ===== PAIRED DEVICE INITIAL LOAD =====
   const initialPairedDevice = useMemo(() => loadLocalPairedDevice(), []);
 
@@ -103,6 +113,11 @@ export default function App() {
 
   // ===== APP SETTINGS STATE =====
   const [appSettings, setAppSettings] = useState(() => initialAppSettings);
+
+  // ===== GAME MODULE SETTINGS STATE =====
+  const [gameModuleSettings, setGameModuleSettings] = useState(
+    () => initialGameModuleSettings
+  );
 
   // ===== PAIRED DEVICE STATE =====
   const [pairedDevice, setPairedDevice] = useState(() => initialPairedDevice);
@@ -135,6 +150,7 @@ export default function App() {
   const lastSharedDriverProfileJsonRef = useRef("");
   const lastSharedTipOptionsJsonRef = useRef("");
   const lastSharedRequestCategoriesJsonRef = useRef("");
+  const lastSharedGameModuleSettingsJsonRef = useRef("");
   const seededAdminContainersRef = useRef(false);
 
   // ===== GUESTBOOK STATE =====
@@ -237,6 +253,15 @@ export default function App() {
     setRequestCategories(sharedRequestCategories);
   }
 
+  function applySharedGameModuleSettings(sharedGameModuleSettings) {
+    if (!Array.isArray(sharedGameModuleSettings)) return;
+
+    lastSharedGameModuleSettingsJsonRef.current =
+      JSON.stringify(sharedGameModuleSettings);
+
+    setGameModuleSettings(sharedGameModuleSettings);
+  }
+
   // ===== PAIRED DEVICE VALIDATION =====
   // LocalStorage alone is not trusted. If Admin removes pairedDevices/{deviceId}
   // in Firebase, this listener clears the local pairing and sends the browser
@@ -274,6 +299,7 @@ export default function App() {
           sharedDriverProfile,
           sharedTipOptions,
           sharedRequestCategories,
+          sharedGameModuleSettings,
         ] = await Promise.all([
           loadSharedAdminContent(),
           loadSharedAppSettings(),
@@ -282,6 +308,7 @@ export default function App() {
           getSharedDriverProfile(),
           getSharedTipOptions(),
           getSharedRequestCategories(),
+          getSharedGameModuleSettings(),
         ]);
 
         if (!mounted) return;
@@ -312,6 +339,10 @@ export default function App() {
 
         if (sharedRequestCategories) {
           applySharedRequestCategories(sharedRequestCategories);
+        }
+
+        if (Array.isArray(sharedGameModuleSettings)) {
+          applySharedGameModuleSettings(sharedGameModuleSettings);
         }
       } catch (error) {
         console.error("Failed to load shared Firestore state:", error);
@@ -380,6 +411,14 @@ export default function App() {
       }
     );
 
+    const unsubscribeGameModuleSettings = listenToSharedGameModuleSettings(
+      (sharedGameModuleSettings) => {
+        if (!Array.isArray(sharedGameModuleSettings)) return;
+        applySharedGameModuleSettings(sharedGameModuleSettings);
+        setSharedStateReady(true);
+      }
+    );
+
     return () => {
       if (unsubscribeContent) unsubscribeContent();
       if (unsubscribeSettings) unsubscribeSettings();
@@ -388,6 +427,7 @@ export default function App() {
       if (unsubscribeDriverProfile) unsubscribeDriverProfile();
       if (unsubscribeTipOptions) unsubscribeTipOptions();
       if (unsubscribeRequestCategories) unsubscribeRequestCategories();
+      if (unsubscribeGameModuleSettings) unsubscribeGameModuleSettings();
     };
     // Run once. Helper functions intentionally use current state fallbacks.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -489,6 +529,22 @@ export default function App() {
     saveSharedRequestCategories(requestCategories);
   }, [requestCategories, sharedStateReady, canWriteFullAdminContent]);
 
+  // ===== GAME MODULE SETTINGS PERSISTENCE =====
+  useEffect(() => {
+    saveGameModuleSettings(gameModuleSettings);
+
+    if (!sharedStateReady || !canWriteFullAdminContent) return;
+
+    const gameModuleSettingsJson = JSON.stringify(gameModuleSettings);
+
+    if (gameModuleSettingsJson === lastSharedGameModuleSettingsJsonRef.current) {
+      return;
+    }
+
+    lastSharedGameModuleSettingsJsonRef.current = gameModuleSettingsJson;
+    saveSharedGameModuleSettings(gameModuleSettings);
+  }, [gameModuleSettings, sharedStateReady, canWriteFullAdminContent]);
+
   // ===== ADMIN PIN PERSISTENCE =====
   useEffect(() => {
     saveAdminPin(adminPin);
@@ -531,11 +587,13 @@ export default function App() {
 
     saveSharedTipOptions(tipOptions);
     saveSharedRequestCategories(requestCategories);
+    saveSharedGameModuleSettings(gameModuleSettings);
     saveSharedAdminPinSnapshot(adminPin);
   }, [
     adminPin,
     tipOptions,
     requestCategories,
+    gameModuleSettings,
     sharedStateReady,
     canWriteFullAdminContent,
   ]);
@@ -711,6 +769,8 @@ export default function App() {
             setTipOptions={setTipOptions}
             appSettings={appSettings}
             setAppSettings={setAppSettings}
+            gameModuleSettings={gameModuleSettings}
+            setGameModuleSettings={setGameModuleSettings}
           />
         </div>
       </main>
@@ -775,7 +835,9 @@ export default function App() {
 
         {page === "ads" && <AdsPage ads={ads} t={t} />}
 
-        {page === "games" && <GamesPage t={t} />}
+        {page === "games" && (
+          <GamesPage t={t} gameModuleSettings={gameModuleSettings} />
+        )}
 
         {page === "weather" && <WeatherPage t={t} appSettings={appSettings} />}
 

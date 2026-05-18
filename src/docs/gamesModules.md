@@ -87,3 +87,20 @@ Change the module `order` value. Lower values appear first.
 ## Sizing rule
 
 Games should fit inside the existing `GameShell`, which uses the same page-frame baseline as the current Mirror screen/card. New games should avoid page-level scrolling and scale their internal content within the provided height.
+
+
+## Admin management
+
+Installed modules can be activated/deactivated and reordered from:
+
+```txt
+/admin > Games
+```
+
+The Admin screen stores module settings in:
+
+```txt
+adminConfig/gameModules
+```
+
+This does not upload new code. Brand-new games still require a code deployment.
