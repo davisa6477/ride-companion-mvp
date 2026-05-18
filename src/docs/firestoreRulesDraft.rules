@@ -1,0 +1,60 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===== MVP/BETA WARNING =====
+    // This is a planning draft, not a final production ruleset.
+    // Replace the placeholder auth checks with your chosen Firebase Auth model.
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      // Future option:
+      // return request.auth != null && request.auth.token.admin == true;
+      return false;
+    }
+
+    // ===== RIDE SESSION SYNC =====
+    match /rideSessions/{sessionId} {
+      // Passenger tablet and console need to read ride session metadata.
+      allow read: if true;
+
+      // Passenger language sync currently writes here.
+      // In production, narrow this to a passenger session token or authenticated device.
+      allow create, update: if true;
+
+      match /requests/{requestId} {
+        // Passenger and console can read requests.
+        allow read: if true;
+
+        // Passenger creates requests.
+        // In production, validate allowed fields and limit status to "pending".
+        allow create: if true;
+
+        // Driver console updates request status.
+        // In production, restrict this to admin/driver auth.
+        allow update: if true;
+
+        // Avoid deletes from public clients.
+        allow delete: if isAdmin();
+      }
+    }
+
+    // ===== SHARED ADMIN CONFIG =====
+    match /adminConfig/{docId} {
+      // Passenger tablet needs to read shared content/settings.
+      allow read: if true;
+
+      // Production should require Firebase Auth/admin claim here.
+      // Do not leave public writes enabled in production.
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ===== DEFAULT DENY =====
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
