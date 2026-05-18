@@ -561,6 +561,12 @@ export default function AdminPage({
           </button>
         </div>
 
+        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+          <div className="font-black">{securityStatus.title}</div>
+          <p className="mt-1">{securityStatus.message}</p>
+          <p className="mt-2 font-bold">{securityStatus.nextStep}</p>
+        </div>
+
         {/* ===== ADMIN INTERNAL PAGE NAVIGATION ===== */}
         <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-7">
           {[
