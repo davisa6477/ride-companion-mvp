@@ -25,6 +25,7 @@ import {
   getSharedAdminContent,
   listenToSharedAdminContent,
   saveSharedAdminContent,
+  saveSharedAdminPinOnlyContent,
 } from "./firestoreAdminService.js";
 
 // ===== ADMIN CONTENT SERVICE =====
@@ -73,6 +74,16 @@ export async function saveSharedAdminContentSnapshot(content) {
     return true;
   } catch (error) {
     console.error("Failed to save shared admin content:", error);
+    return false;
+  }
+}
+
+export async function saveSharedAdminPinSnapshot(adminPin) {
+  try {
+    await saveSharedAdminPinOnlyContent(adminPin);
+    return true;
+  } catch (error) {
+    console.error("Failed to save reduced shared admin content:", error);
     return false;
   }
 }

@@ -1,4 +1,5 @@
 import {
+  deleteField,
   doc,
   getDoc,
   onSnapshot,
@@ -55,6 +56,28 @@ export function listenToSharedAdminContent(callback, onError) {
       console.error("Failed to listen to shared admin content:", error);
       if (onError) onError(error);
     }
+  );
+}
+
+
+// ===== REDUCED CONTENT CLEANUP =====
+// Phase 15 moved profile, ads, guestbook, tips, and request categories into
+// their own containers. This helper keeps adminConfig/content from retaining
+// stale legacy fields when viewed in Firebase Console.
+export async function saveSharedAdminPinOnlyContent(adminPin) {
+  return setDoc(
+    getAdminContentRef(),
+    {
+      adminPin,
+      // Remove legacy/containerized fields if they still exist from earlier phases.
+      entries: deleteField(),
+      ads: deleteField(),
+      driverProfile: deleteField(),
+      tipOptions: deleteField(),
+      requestCategories: deleteField(),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
   );
 }
 

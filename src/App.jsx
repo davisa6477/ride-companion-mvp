@@ -20,7 +20,7 @@ import { setPassengerLanguage } from "./services/rideSessionService.js";
 import {
   loadAdminContent,
   loadSharedAdminContent,
-  saveSharedAdminContentSnapshot,
+  saveSharedAdminPinSnapshot,
   subscribeToSharedAdminContent,
   saveDriverProfile,
   saveTipOptions,
@@ -101,6 +101,7 @@ export default function App() {
   const lastSharedDriverProfileJsonRef = useRef("");
   const lastSharedTipOptionsJsonRef = useRef("");
   const lastSharedRequestCategoriesJsonRef = useRef("");
+  const seededAdminContainersRef = useRef(false);
 
   // ===== GUESTBOOK STATE =====
   const [entries, setEntries] = useState(() => initialAdminContent.entries);
@@ -439,9 +440,9 @@ export default function App() {
   }, [adminPin]);
 
   // ===== SHARED FIRESTORE ADMIN CONTENT SNAPSHOT =====
-  // Guestbook entries, ads, driver profile, tip options, and request categories
-  // now sync through their own Firestore services. This remaining snapshot only
-  // contains MVP admin PIN state until auth replaces it.
+  // All major admin data now syncs through dedicated containers. The remaining
+  // adminConfig/content document is reduced to MVP admin PIN state and legacy
+  // fields are deleted so Firebase Console reflects the new tree.
   useEffect(() => {
     if (!sharedStateReady || !canWriteFullAdminContent) return;
 
@@ -456,9 +457,30 @@ export default function App() {
     }
 
     lastSharedAdminContentJsonRef.current = contentJson;
-    saveSharedAdminContentSnapshot(contentSnapshot);
+    saveSharedAdminPinSnapshot(adminPin);
   }, [
     adminPin,
+    sharedStateReady,
+    canWriteFullAdminContent,
+  ]);
+
+  // ===== ADMIN CONTAINER SEED / MIGRATION =====
+  // Creates the split Firestore documents even if the related data has not been
+  // edited since the split. This makes the Firebase tree match the modular app
+  // structure immediately after opening /admin.
+  useEffect(() => {
+    if (!sharedStateReady || !canWriteFullAdminContent) return;
+    if (seededAdminContainersRef.current) return;
+
+    seededAdminContainersRef.current = true;
+
+    saveSharedTipOptions(tipOptions);
+    saveSharedRequestCategories(requestCategories);
+    saveSharedAdminPinSnapshot(adminPin);
+  }, [
+    adminPin,
+    tipOptions,
+    requestCategories,
     sharedStateReady,
     canWriteFullAdminContent,
   ]);
