@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Bell, CheckCircle2, Clock3, Monitor, Trash2, User } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Bell, CheckCircle2, Clock3, Monitor, Trash2, User, Volume2, VolumeX } from "lucide-react";
 import {
   listenToPassengerRequests,
   listenToRideSession,
@@ -35,12 +35,127 @@ function formatPageUpdatedTime(timestamp) {
   });
 }
 
+const CONSOLE_SOUND_KEY = "rideCompanion.consoleSoundEnabled";
+
+function loadConsoleSoundEnabled() {
+  try {
+    return localStorage.getItem(CONSOLE_SOUND_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function saveConsoleSoundEnabled(enabled) {
+  try {
+    localStorage.setItem(CONSOLE_SOUND_KEY, enabled ? "true" : "false");
+  } catch {
+    // Ignore local storage errors.
+  }
+}
+
 export default function DriverConsolePage() {
   // ===== LIVE REQUEST STATE =====
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [consoleError, setConsoleError] = useState("");
   const [rideSession, setRideSession] = useState({});
+  const [soundEnabled, setSoundEnabled] = useState(() => loadConsoleSoundEnabled());
+  const [soundReady, setSoundReady] = useState(false);
+  const audioContextRef = useRef(null);
+  const lastNotificationIdRef = useRef("");
+
+  // ===== CONSOLE SOUND HELPERS =====
+  function initializeSound() {
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+
+      if (!AudioContextClass) {
+        setConsoleError("This browser does not support console notification sound.");
+        return;
+      }
+
+      if (!audioContextRef.current) {
+        audioContextRef.current = new AudioContextClass();
+      }
+
+      audioContextRef.current.resume?.();
+      saveConsoleSoundEnabled(true);
+      setSoundEnabled(true);
+      setSoundReady(true);
+      playNotificationSound("enabled");
+    } catch (error) {
+      console.error("Failed to initialize notification sound:", error);
+      setConsoleError("Could not enable notification sound on this device.");
+    }
+  }
+
+  function disableSound() {
+    saveConsoleSoundEnabled(false);
+    setSoundEnabled(false);
+    setSoundReady(false);
+  }
+
+  function playNotificationSound(type = "general") {
+    if (!soundEnabled && type !== "enabled") return;
+
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+
+      if (!audioContextRef.current && AudioContextClass) {
+        audioContextRef.current = new AudioContextClass();
+      }
+
+      const context = audioContextRef.current;
+      if (!context) return;
+
+      context.resume?.();
+
+      const now = context.currentTime;
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+
+      const frequency =
+        type === "request"
+          ? 880
+          : type === "guestbook"
+          ? 660
+          : type === "tip"
+          ? 1046
+          : 784;
+
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(frequency, now);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.22, now + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.28);
+
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+
+      oscillator.start(now);
+      oscillator.stop(now + 0.3);
+
+      if (type === "tip") {
+        const secondOscillator = context.createOscillator();
+        const secondGain = context.createGain();
+
+        secondOscillator.type = "sine";
+        secondOscillator.frequency.setValueAtTime(1318, now + 0.12);
+
+        secondGain.gain.setValueAtTime(0.0001, now + 0.12);
+        secondGain.gain.exponentialRampToValueAtTime(0.18, now + 0.14);
+        secondGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
+
+        secondOscillator.connect(secondGain);
+        secondGain.connect(context.destination);
+        secondOscillator.start(now + 0.12);
+        secondOscillator.stop(now + 0.42);
+      }
+    } catch (error) {
+      console.error("Failed to play notification sound:", error);
+    }
+  }
 
   // ===== PASSENGER REQUEST LISTENER =====
   // Keeps the driver console synced with Firestore passenger requests.
@@ -63,6 +178,23 @@ export default function DriverConsolePage() {
 
     return () => unsubscribe();
   }, []);
+
+  // ===== CONSOLE NOTIFICATION SOUND LISTENER =====
+  useEffect(() => {
+    const notification = rideSession.latestConsoleNotification;
+
+    if (!notification?.id) return;
+
+    if (!lastNotificationIdRef.current) {
+      lastNotificationIdRef.current = notification.id;
+      return;
+    }
+
+    if (lastNotificationIdRef.current === notification.id) return;
+
+    lastNotificationIdRef.current = notification.id;
+    playNotificationSound(notification.type);
+  }, [rideSession.latestConsoleNotification]);
 
   // ===== VISIBLE REQUEST FILTERING =====
   // Cleared requests stay in Firestore history but disappear from the active console.
@@ -129,10 +261,25 @@ export default function DriverConsolePage() {
               </p>
             </div>
 
-            <div className="rounded-2xl bg-white/10 p-3">
-              <Bell
-                className={pendingCount > 0 ? "text-amber-300" : "text-white/40"}
-              />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={soundEnabled ? disableSound : initializeSound}
+                className={`rounded-2xl p-3 ${
+                  soundEnabled
+                    ? "bg-emerald-300 text-emerald-950"
+                    : "bg-white/10 text-white/50"
+                }`}
+                title={soundEnabled ? "Notification sound enabled" : "Enable notification sound"}
+              >
+                {soundEnabled ? <Volume2 /> : <VolumeX />}
+              </button>
+
+              <div className="rounded-2xl bg-white/10 p-3">
+                <Bell
+                  className={pendingCount > 0 ? "text-amber-300" : "text-white/40"}
+                />
+              </div>
             </div>
           </div>
 
@@ -166,26 +313,54 @@ export default function DriverConsolePage() {
             </div>
           </div>
 
-          <div className="mt-3 rounded-2xl bg-white/10 p-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="rounded-xl bg-white/10 p-2">
-                  <Monitor size={18} className="text-cyan-200" />
+          <div className="mt-3 grid gap-2">
+            <div className="rounded-2xl bg-white/10 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="rounded-xl bg-white/10 p-2">
+                    <Monitor size={18} className="text-cyan-200" />
+                  </div>
+
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">
+                      Tablet Page
+                    </div>
+
+                    <div className="truncate text-lg font-black text-cyan-200">
+                      {rideSession.passengerPageLabel || "Waiting for tablet"}
+                    </div>
+                  </div>
                 </div>
 
-                <div className="min-w-0">
-                  <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">
-                    Tablet Page
-                  </div>
-
-                  <div className="truncate text-lg font-black text-cyan-200">
-                    {rideSession.passengerPageLabel || "Waiting for tablet"}
-                  </div>
+                <div className="shrink-0 text-right text-[10px] font-bold uppercase tracking-wide text-white/40">
+                  {formatPageUpdatedTime(rideSession.passengerPageUpdatedAt)}
                 </div>
               </div>
+            </div>
 
-              <div className="shrink-0 text-right text-[10px] font-bold uppercase tracking-wide text-white/40">
-                {formatPageUpdatedTime(rideSession.passengerPageUpdatedAt)}
+            <div className="rounded-2xl bg-white/10 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">
+                    Latest Alert
+                  </div>
+
+                  <div className="truncate text-sm font-black text-white/80">
+                    {rideSession.latestConsoleNotification?.label || "No alerts yet"}
+                  </div>
+
+                  {rideSession.latestConsoleNotification?.message && (
+                    <div className="truncate text-xs text-white/45">
+                      {rideSession.latestConsoleNotification.message}
+                    </div>
+                  )}
+                </div>
+
+                <div className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wide ${
+                  soundEnabled ? "bg-emerald-300 text-emerald-950" : "bg-white/10 text-white/50"
+                }`}>
+                  {soundEnabled ? "Sound On" : "Tap Sound"}
+                </div>
               </div>
             </div>
           </div>
@@ -316,7 +491,9 @@ export default function DriverConsolePage() {
 
             <div className="flex items-center justify-between rounded-2xl bg-white/5 p-3">
               <span>Notifications</span>
-              <span className="font-black text-white/60">Planned</span>
+              <span className={`font-black ${soundEnabled ? "text-emerald-300" : "text-white/60"}`}>
+                {soundEnabled ? "Sound On" : "Tap speaker"}
+              </span>
             </div>
           </div>
         </section>

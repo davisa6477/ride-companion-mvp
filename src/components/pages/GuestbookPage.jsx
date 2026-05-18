@@ -3,6 +3,7 @@ import { MapPin } from "lucide-react";
 import PageCard from "../layout/PageCard.jsx";
 import { PAGE_FRAME_CLASS } from "../../config/pageFrame.js";
 import { createSharedGuestbookEntry } from "../../services/firestoreGuestbookService.js";
+import { sendConsoleNotification } from "../../services/rideSessionService.js";
 
 export default function GuestbookPage({
   entries = [],
@@ -49,6 +50,12 @@ export default function GuestbookPage({
 
     try {
       await createSharedGuestbookEntry(pendingEntry);
+
+      await sendConsoleNotification({
+        type: "guestbook",
+        label: "Guestbook Entry",
+        message: `${pendingEntry.name} left a guestbook note.`,
+      });
 
       setName("");
       setCity("");

@@ -88,6 +88,33 @@ export function listenToPassengerRequests(callback) {
   });
 }
 
+
+// ===== CONSOLE NOTIFICATION SYNC =====
+// Passenger actions can ping the driver console. The console listens through
+// listenToRideSession() and plays a local sound if the driver enabled audio.
+export async function sendConsoleNotification(notification = {}) {
+  const type = notification.type || "general";
+  const label = notification.label || "Passenger activity";
+  const message = notification.message || label;
+
+  return setDoc(
+    getRideSessionRef(),
+    {
+      latestConsoleNotification: {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        type,
+        label,
+        message,
+        createdAt: serverTimestamp(),
+        createdAtMs: Date.now(),
+        deviceMetadata: getLocalDeviceMetadata(),
+      },
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+}
+
 // ===== PASSENGER PAGE STATUS SYNC =====
 // Called from the passenger tablet whenever the visible passenger page changes.
 // The driver console listens to this value through listenToRideSession().

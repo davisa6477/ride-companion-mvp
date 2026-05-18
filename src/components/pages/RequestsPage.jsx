@@ -9,6 +9,7 @@ import { PAGE_FRAME_CLASS } from "../../config/pageFrame.js";
 import { categoryDescriptions } from "../../data/defaultRequests.js";
 import {
   listenToPassengerRequests,
+  sendConsoleNotification,
   sendPassengerRequest,
 } from "../../services/rideSessionService.js";
 
@@ -91,6 +92,12 @@ export default function RequestsPage({
     try {
       await sendPassengerRequest({
         category: selectedCategory,
+        message: item,
+      });
+
+      await sendConsoleNotification({
+        type: "request",
+        label: "Passenger Request",
         message: item,
       });
 

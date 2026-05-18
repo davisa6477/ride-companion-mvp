@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import { sendConsoleNotification } from "../../services/rideSessionService.js";
 
 export default function TipModal({
   tipOptions = [],
@@ -30,6 +31,16 @@ export default function TipModal({
   const selectedOption =
     availableOptions.find((option) => option.id === selectedId) ||
     availableOptions[0];
+
+  function notifyTipOpen(option) {
+    sendConsoleNotification({
+      type: "tip",
+      label: "Tip Link Opened",
+      message: `${option.platform} tip link opened.`,
+    }).catch((error) => {
+      console.error("Failed to send tip notification:", error);
+    });
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
@@ -108,6 +119,7 @@ export default function TipModal({
                   href={selectedOption.url}
                   target="_blank"
                   rel="noreferrer"
+                  onClick={() => notifyTipOpen(selectedOption)}
                   className="mt-5 rounded-2xl bg-slate-950 px-6 py-3 font-black text-white"
                 >
                   {tr("tips_open", "Open")}{" "}
