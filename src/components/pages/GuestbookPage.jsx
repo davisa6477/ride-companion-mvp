@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { MapPin } from "lucide-react";
 import PageCard from "../layout/PageCard.jsx";
+import { PAGE_FRAME_CLASS } from "../../config/pageFrame.js";
 import { createSharedGuestbookEntry } from "../../services/firestoreGuestbookService.js";
 
 export default function GuestbookPage({
@@ -70,21 +71,23 @@ export default function GuestbookPage({
   const approvedEntries = entries.filter((entry) => entry.approved);
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[.9fr_1.1fr]">
+    <div className={`grid gap-5 lg:grid-cols-[.9fr_1.1fr] ${PAGE_FRAME_CLASS}`}>
       {/* ===== GUESTBOOK SUBMISSION FORM ===== */}
-      <PageCard>
-        <h2 className="text-3xl font-black text-slate-950">
-          {tr("guestbook_title", "Leave a note")}
-        </h2>
+      <PageCard className="flex h-full min-h-0 flex-col overflow-hidden">
+        <div className="shrink-0">
+          <h2 className="text-3xl font-black text-slate-950">
+            {tr("guestbook_title", "Leave a note")}
+          </h2>
 
-        <p className="mt-2 text-slate-600">
-          {tr(
-            "guestbook_subtitle",
-            "Messages appear after driver approval."
-          )}
-        </p>
+          <p className="mt-2 text-slate-600">
+            {tr(
+              "guestbook_subtitle",
+              "Messages appear after driver approval."
+            )}
+          </p>
+        </div>
 
-        <form onSubmit={submitEntry} className="mt-5 grid gap-3">
+        <form onSubmit={submitEntry} className="mt-5 grid min-h-0 flex-1 gap-3 overflow-y-auto pr-1">
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -135,12 +138,12 @@ export default function GuestbookPage({
       </PageCard>
 
       {/* ===== APPROVED RIDE WALL ===== */}
-      <PageCard>
-        <h2 className="text-3xl font-black text-slate-950">
+      <PageCard className="flex h-full min-h-0 flex-col overflow-hidden">
+        <h2 className="shrink-0 text-3xl font-black text-slate-950">
           {tr("guestbook_wall", "Ride Wall")}
         </h2>
 
-        <div className="mt-5 grid max-h-[520px] gap-3 overflow-auto pr-2">
+        <div className="mt-5 grid min-h-0 flex-1 content-start gap-3 overflow-y-auto pr-2">
           {approvedEntries.length === 0 ? (
             <div className="rounded-2xl bg-slate-100 p-5 text-slate-500">
               {tr(
