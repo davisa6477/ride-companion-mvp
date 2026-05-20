@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useState } from "react";
 import PageCard from "../layout/PageCard.jsx";
 import { PAGE_FRAME_CLASS } from "../../config/pageFrame.js";
+import { translateRuntimeText } from "../../services/runtimeDynamicTranslationService.js";
 import { categoryDescriptions } from "../../data/defaultRequests.js";
 import {
   listenToPassengerRequests,
@@ -34,12 +35,14 @@ function formatRequestTime(timestamp) {
 
 export default function RequestsPage({
   requestCategories = {},
+  appLanguage = "en",
   t = (key) => key,
 }) {
   // ===== LOCAL UI STATE =====
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [liveRequests, setLiveRequests] = useState([]);
   const [sendError, setSendError] = useState("");
+  const [runtimeRequestTranslations, setRuntimeRequestTranslations] = useState({});
   const [sendingRequest, setSendingRequest] = useState("");
 
   // ===== STATIC TRANSLATION HELPER =====
@@ -48,11 +51,60 @@ export default function RequestsPage({
     return translated === key ? fallback : translated;
   }
 
+  // ===== TABLET RUNTIME REQUEST TRANSLATIONS =====
+  useEffect(() => {
+    let cancelled = false;
+
+    async function translateRequestTextForTablet() {
+      if (!appLanguage || appLanguage === "en") {
+        setRuntimeRequestTranslations({});
+        return;
+      }
+
+      try {
+        const uniqueTexts = [
+          ...new Set(
+            Object.entries(requestCategories).flatMap(([category, items]) => [
+              category,
+              ...(items || []),
+            ])
+          ),
+        ].filter(Boolean);
+
+        const translatedEntries = await Promise.all(
+          uniqueTexts.map(async (text) => [
+            text,
+            await translateRuntimeText(text, appLanguage),
+          ])
+        );
+
+        if (!cancelled) {
+          setRuntimeRequestTranslations(Object.fromEntries(translatedEntries));
+        }
+      } catch (error) {
+        console.error("Runtime request translation failed:", error);
+
+        if (!cancelled) {
+          setRuntimeRequestTranslations({});
+        }
+      }
+    }
+
+    translateRequestTextForTablet();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [requestCategories, appLanguage]);
+
   // ===== REQUEST TEXT TRANSLATION HELPERS =====
   // Static/default request text can be translated with request_category_* and request_item_* keys.
   // Custom admin-created request text falls back to the original English/custom phrase.
   function getCategoryLabel(category) {
-    return tr(`request_category_${category}`, category);
+    return (
+      runtimeRequestTranslations[category] ||
+      tr(`request_category_${category}`, category)
+    );
   }
 
   function getCategoryDescription(category) {
@@ -64,7 +116,10 @@ export default function RequestsPage({
   }
 
   function getRequestItemLabel(item) {
-    return tr(`request_item_${item}`, item);
+    return (
+      runtimeRequestTranslations[item] ||
+      tr(`request_item_${item}`, item)
+    );
   }
 
   // ===== LIVE REQUEST LISTENER =====

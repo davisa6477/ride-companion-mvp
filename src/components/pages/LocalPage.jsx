@@ -7,6 +7,7 @@ import { MapPin, Search } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import PageCard from "../layout/PageCard.jsx";
 import { PAGE_FRAME_CLASS } from "../../config/pageFrame.js";
+import { translateRuntimeText } from "../../services/runtimeDynamicTranslationService.js";
 import {
   buildNearSearchLabel,
   getFallbackLocationSettings,
@@ -21,7 +22,7 @@ function buildGoogleMapsSearchUrl(query) {
   )}`;
 }
 
-export default function LocalPage({ t = (key) => key, appSettings = {} }) {
+export default function LocalPage({ t = (key) => key, appLanguage = "en", appSettings = {} }) {
   // ===== STATIC TRANSLATION HELPER =====
   function tr(key, fallback) {
     const translated = t(key);
@@ -158,6 +159,52 @@ export default function LocalPage({ t = (key) => key, appSettings = {} }) {
   const fallbackSearchLabel =
     fallbackLocation.defaultLocationLabel || fallbackLocation.defaultZipCode || nearMeLabel;
 
+  // ===== RUNTIME TRANSLATED FALLBACK LOCATION LABEL =====
+  const [translatedFallbackSearchLabel, setTranslatedFallbackSearchLabel] =
+    useState(fallbackSearchLabel);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function translateFallbackLocationLabel() {
+      if (
+        !appLanguage ||
+        appLanguage === "en" ||
+        !fallbackLocation.defaultLocationLabel
+      ) {
+        setTranslatedFallbackSearchLabel(fallbackSearchLabel);
+        return;
+      }
+
+      try {
+        const translatedLabel = await translateRuntimeText(
+          fallbackLocation.defaultLocationLabel,
+          appLanguage
+        );
+
+        if (!cancelled) {
+          setTranslatedFallbackSearchLabel(translatedLabel || fallbackSearchLabel);
+        }
+      } catch (error) {
+        console.error("Runtime local fallback label translation failed:", error);
+
+        if (!cancelled) {
+          setTranslatedFallbackSearchLabel(fallbackSearchLabel);
+        }
+      }
+    }
+
+    translateFallbackLocationLabel();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    appLanguage,
+    fallbackLocation.defaultLocationLabel,
+    fallbackSearchLabel,
+  ]);
+
   // ===== LOCATION STATE =====
   const [locationLabel, setLocationLabel] = useState(fallbackSearchLabel);
   const [locationStatus, setLocationStatus] = useState(
@@ -206,7 +253,7 @@ export default function LocalPage({ t = (key) => key, appSettings = {} }) {
     return () => {
       mounted = false;
     };
-  }, [fallbackSearchLabel, nearMeLabel]);
+  }, [fallbackSearchLabel, translatedFallbackSearchLabel, nearMeLabel]);
 
   // ===== CATEGORY SELECTION =====
   function chooseCategory(category) {

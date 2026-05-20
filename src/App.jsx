@@ -1005,13 +1005,13 @@ export default function App() {
           />
         )}
 
-        {page === "local" && <LocalPage t={t} appSettings={appSettings} />}
+        {page === "local" && <LocalPage t={t} appLanguage={appLanguage} appSettings={appSettings} />}
 
         {page === "guestbook" && (
           <GuestbookPage entries={entries} setEntries={setEntries} t={t} />
         )}
 
-        {page === "ads" && <AdsPage ads={ads} t={t} />}
+        {page === "ads" && <AdsPage ads={ads} appLanguage={appLanguage} t={t} />}
 
         {page === "games" && (
           <GamesPage
@@ -1024,7 +1024,7 @@ export default function App() {
         {page === "weather" && <WeatherPage t={t} appSettings={appSettings} />}
 
         {page === "requests" && (
-          <RequestsPage requestCategories={requestCategories} t={t} />
+          <RequestsPage requestCategories={requestCategories} appLanguage={appLanguage} t={t} />
         )}
 
         {page === "flights" && <FlightCheckerPage t={t} />}
@@ -1045,6 +1045,7 @@ export default function App() {
           onNavigate={navigateFromAttractMode}
           driverName={driverProfile?.name || ""}
           featuredAd={featuredAd}
+          appLanguage={appLanguage}
           t={t}
         />
 

@@ -6,6 +6,7 @@ import {
   MessageSquareHeart,
   Sparkles,
 } from "lucide-react";
+import { translateRuntimeFields } from "../../services/runtimeDynamicTranslationService.js";
 
 const DEFAULT_SLIDE_MS = 7000;
 
@@ -15,9 +16,12 @@ export default function PassengerAttractMode({
   onNavigate,
   driverName = "",
   featuredAd = null,
+  appLanguage = "en",
   t = (key) => key,
 }) {
   const [slideIndex, setSlideIndex] = useState(0);
+  const [runtimeFeaturedAdTranslations, setRuntimeFeaturedAdTranslations] =
+    useState({});
 
   function tr(key, fallback) {
     const translated = t(key);
@@ -96,6 +100,41 @@ export default function PassengerAttractMode({
     [t]
   );
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function translateFeaturedDealSlide() {
+      if (!featuredAd || !appLanguage || appLanguage === "en") {
+        setRuntimeFeaturedAdTranslations({});
+        return;
+      }
+
+      try {
+        const translatedFields = await translateRuntimeFields(
+          featuredAd,
+          ["businessName", "headline", "description"],
+          appLanguage
+        );
+
+        if (!cancelled) {
+          setRuntimeFeaturedAdTranslations(translatedFields);
+        }
+      } catch (error) {
+        console.error("Runtime attract featured deal translation failed:", error);
+
+        if (!cancelled) {
+          setRuntimeFeaturedAdTranslations({});
+        }
+      }
+    }
+
+    translateFeaturedDealSlide();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [featuredAd, appLanguage]);
+
   const effectiveSlides = useMemo(() => {
     if (!featuredAd?.businessName && !featuredAd?.headline) return slides;
 
@@ -105,8 +144,13 @@ export default function PassengerAttractMode({
         id: "featured-deal",
         icon: MapPin,
         eyebrow: tr("attract_deal_eyebrow", "Featured deal"),
-        title: featuredAd.businessName || tr("attract_deal_title", "Local deal"),
+        title:
+          runtimeFeaturedAdTranslations.businessName ||
+          featuredAd.businessName ||
+          tr("attract_deal_title", "Local deal"),
         body:
+          runtimeFeaturedAdTranslations.headline ||
+          runtimeFeaturedAdTranslations.description ||
           featuredAd.headline ||
           featuredAd.description ||
           tr("attract_deal_body", "Check out today’s featured local offer."),
@@ -115,7 +159,7 @@ export default function PassengerAttractMode({
       },
       ...slides.slice(2),
     ];
-  }, [featuredAd, slides, t]);
+  }, [featuredAd, runtimeFeaturedAdTranslations, slides, t]);
 
   const activeSlide = effectiveSlides[slideIndex % effectiveSlides.length];
   const Icon = activeSlide?.icon || Sparkles;
