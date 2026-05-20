@@ -36,6 +36,15 @@ function formatPageUpdatedTime(timestamp) {
 }
 
 const CONSOLE_SOUND_KEY = "rideCompanion.consoleSoundEnabled";
+const CONSOLE_SOUND_SETTINGS_KEY = "rideCompanion.consoleSoundSettings";
+
+const DEFAULT_SOUND_SETTINGS = {
+  soundType: "soft",
+  volume: 0.7,
+  requestEnabled: true,
+  guestbookEnabled: true,
+  tipEnabled: true,
+};
 
 function loadConsoleSoundEnabled() {
   try {
@@ -53,6 +62,32 @@ function saveConsoleSoundEnabled(enabled) {
   }
 }
 
+function loadConsoleSoundSettings() {
+  try {
+    const raw = localStorage.getItem(CONSOLE_SOUND_SETTINGS_KEY);
+    return {
+      ...DEFAULT_SOUND_SETTINGS,
+      ...(raw ? JSON.parse(raw) : {}),
+    };
+  } catch {
+    return DEFAULT_SOUND_SETTINGS;
+  }
+}
+
+function saveConsoleSoundSettings(settings) {
+  try {
+    localStorage.setItem(
+      CONSOLE_SOUND_SETTINGS_KEY,
+      JSON.stringify({
+        ...DEFAULT_SOUND_SETTINGS,
+        ...settings,
+      })
+    );
+  } catch {
+    // Ignore local storage errors.
+  }
+}
+
 export default function DriverConsolePage() {
   // ===== LIVE REQUEST STATE =====
   const [requests, setRequests] = useState([]);
@@ -61,8 +96,30 @@ export default function DriverConsolePage() {
   const [rideSession, setRideSession] = useState({});
   const [soundEnabled, setSoundEnabled] = useState(() => loadConsoleSoundEnabled());
   const [soundReady, setSoundReady] = useState(false);
+  const [soundSettings, setSoundSettings] = useState(() =>
+    loadConsoleSoundSettings()
+  );
   const audioContextRef = useRef(null);
   const lastNotificationIdRef = useRef("");
+
+  // ===== CONSOLE SOUND HELPERS =====
+  function updateSoundSetting(field, value) {
+    const nextSettings = {
+      ...soundSettings,
+      [field]: value,
+    };
+
+    setSoundSettings(nextSettings);
+    saveConsoleSoundSettings(nextSettings);
+  }
+
+  function notificationTypeEnabled(type) {
+    if (type === "request") return soundSettings.requestEnabled;
+    if (type === "guestbook") return soundSettings.guestbookEnabled;
+    if (type === "tip") return soundSettings.tipEnabled;
+
+    return true;
+  }
 
   // ===== CONSOLE SOUND HELPERS =====
   function initializeSound() {
@@ -97,6 +154,7 @@ export default function DriverConsolePage() {
 
   function playNotificationSound(type = "general") {
     if (!soundEnabled && type !== "enabled") return;
+    if (type !== "enabled" && !notificationTypeEnabled(type)) return;
 
     try {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -114,6 +172,11 @@ export default function DriverConsolePage() {
       const oscillator = context.createOscillator();
       const gain = context.createGain();
 
+      const baseVolume = Math.max(
+        0.05,
+        Math.min(1, Number(soundSettings.volume) || DEFAULT_SOUND_SETTINGS.volume)
+      );
+
       const frequency =
         type === "request"
           ? 880
@@ -123,11 +186,14 @@ export default function DriverConsolePage() {
           ? 1046
           : 784;
 
-      oscillator.type = "sine";
+      oscillator.type = soundSettings.soundType === "bright" ? "triangle" : "sine";
       oscillator.frequency.setValueAtTime(frequency, now);
 
+      const attackVolume =
+        soundSettings.soundType === "subtle" ? 0.11 : soundSettings.soundType === "bright" ? 0.28 : 0.2;
+
       gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(0.22, now + 0.015);
+      gain.gain.exponentialRampToValueAtTime(attackVolume * baseVolume, now + 0.015);
       gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.28);
 
       oscillator.connect(gain);
@@ -140,11 +206,11 @@ export default function DriverConsolePage() {
         const secondOscillator = context.createOscillator();
         const secondGain = context.createGain();
 
-        secondOscillator.type = "sine";
+        secondOscillator.type = soundSettings.soundType === "bright" ? "triangle" : "sine";
         secondOscillator.frequency.setValueAtTime(1318, now + 0.12);
 
         secondGain.gain.setValueAtTime(0.0001, now + 0.12);
-        secondGain.gain.exponentialRampToValueAtTime(0.18, now + 0.14);
+        secondGain.gain.exponentialRampToValueAtTime(0.18 * baseVolume, now + 0.14);
         secondGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
 
         secondOscillator.connect(secondGain);
@@ -155,6 +221,15 @@ export default function DriverConsolePage() {
     } catch (error) {
       console.error("Failed to play notification sound:", error);
     }
+  }
+
+  function testNotificationSound() {
+    if (!soundEnabled) {
+      initializeSound();
+      return;
+    }
+
+    playNotificationSound("enabled");
   }
 
   // ===== PASSENGER REQUEST LISTENER =====
@@ -366,6 +441,87 @@ export default function DriverConsolePage() {
           </div>
         </header>
 
+        {/* ===== CONSOLE NOTIFICATION SOUND SETTINGS ===== */}
+        <section className="mb-4 rounded-3xl bg-white/10 p-4 backdrop-blur">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-black">Notification Sounds</h2>
+              <p className="text-sm text-white/50">
+                Configure sounds for this console device.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={testNotificationSound}
+              className="rounded-xl bg-cyan-300 px-3 py-2 text-sm font-black text-cyan-950 shadow-lg"
+            >
+              Test Sound
+            </button>
+          </div>
+
+          <div className="mt-3 grid gap-3">
+            <div className="grid gap-2 sm:grid-cols-2">
+              <label className="grid gap-1 text-sm font-bold text-white/70">
+                Sound style
+                <select
+                  value={soundSettings.soundType}
+                  onChange={(event) =>
+                    updateSoundSetting("soundType", event.target.value)
+                  }
+                  className="rounded-2xl border border-white/10 bg-slate-950 p-3 text-white outline-none"
+                >
+                  <option value="soft">Soft</option>
+                  <option value="bright">Bright</option>
+                  <option value="subtle">Subtle</option>
+                </select>
+              </label>
+
+              <label className="grid gap-1 text-sm font-bold text-white/70">
+                Volume: {Math.round((soundSettings.volume || 0) * 100)}%
+                <input
+                  type="range"
+                  min="0.1"
+                  max="1"
+                  step="0.05"
+                  value={soundSettings.volume}
+                  onChange={(event) =>
+                    updateSoundSetting("volume", Number(event.target.value))
+                  }
+                  className="h-10"
+                />
+              </label>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-3">
+              {[
+                ["requestEnabled", "Requests"],
+                ["guestbookEnabled", "Guestbook"],
+                ["tipEnabled", "Tip links"],
+              ].map(([field, label]) => (
+                <label
+                  key={field}
+                  className="flex items-center justify-between gap-3 rounded-2xl bg-white/5 p-3 text-sm font-black"
+                >
+                  <span>{label}</span>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(soundSettings[field])}
+                    onChange={(event) =>
+                      updateSoundSetting(field, event.target.checked)
+                    }
+                    className="h-5 w-5"
+                  />
+                </label>
+              ))}
+            </div>
+
+            <div className="rounded-2xl bg-white/5 p-3 text-xs font-bold text-white/45">
+              Tip alerts mean the passenger opened a tip link. External payment completion cannot be verified from here.
+            </div>
+          </div>
+        </section>
+
         {/* ===== PASSENGER REQUEST PANEL ===== */}
         <section className="rounded-3xl bg-white/10 p-4 backdrop-blur">
           <div className="mb-4 flex items-center justify-between gap-3">
@@ -492,7 +648,7 @@ export default function DriverConsolePage() {
             <div className="flex items-center justify-between rounded-2xl bg-white/5 p-3">
               <span>Notifications</span>
               <span className={`font-black ${soundEnabled ? "text-emerald-300" : "text-white/60"}`}>
-                {soundEnabled ? "Sound On" : "Tap speaker"}
+                {soundEnabled ? `${soundSettings.soundType} / ${Math.round((soundSettings.volume || 0) * 100)}%` : "Tap speaker"}
               </span>
             </div>
           </div>

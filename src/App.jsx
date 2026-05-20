@@ -16,6 +16,7 @@ import PairingPage from "./components/pages/PairingPage.jsx";
 import AdminPage from "./components/admin/AdminPage.jsx";
 import DeveloperPortalPage from "./components/developer/DeveloperPortalPage.jsx";
 import DriverConsolePage from "./components/console/DriverConsolePage.jsx";
+import PassengerAttractMode from "./components/shared/PassengerAttractMode.jsx";
 
 import { createTranslator } from "./data/translations.js";
 import {
@@ -127,6 +128,7 @@ export default function App() {
   // ===== PASSENGER UI STATE =====
   const [page, setPage] = useState("home");
   const [appLanguage, setAppLanguage] = useState("en");
+  const [attractModeVisible, setAttractModeVisible] = useState(false);
 
   // ===== APP SETTINGS STATE =====
   const [appSettings, setAppSettings] = useState(() => initialAppSettings);
@@ -170,6 +172,8 @@ export default function App() {
   const lastSharedGuestbookEntriesJsonRef = useRef("");
   const lastSharedAdsJsonRef = useRef("");
   const lastSharedDriverProfileJsonRef = useRef("");
+  const lastLocalDriverProfileEditAtRef = useRef(0);
+  const suppressNextDriverProfilePersistenceRef = useRef(false);
   const lastSharedTipOptionsJsonRef = useRef("");
   const lastSharedRequestCategoriesJsonRef = useRef("");
   const lastSharedGameModuleSettingsJsonRef = useRef("");
@@ -252,9 +256,17 @@ export default function App() {
   function applySharedDriverProfile(sharedProfile) {
     if (!sharedProfile) return;
 
-    lastSharedDriverProfileJsonRef.current =
-      JSON.stringify(sharedProfile);
+    const sharedProfileJson = JSON.stringify(sharedProfile);
+    const recentLocalDriverEdit =
+      isAdminPage && Date.now() - lastLocalDriverProfileEditAtRef.current < 2500;
 
+    if (recentLocalDriverEdit) {
+      lastSharedDriverProfileJsonRef.current = sharedProfileJson;
+      return;
+    }
+
+    lastSharedDriverProfileJsonRef.current = sharedProfileJson;
+    suppressNextDriverProfilePersistenceRef.current = true;
     setDriverProfile(sharedProfile);
   }
 
@@ -502,16 +514,27 @@ export default function App() {
   useEffect(() => {
     saveDriverProfile(driverProfile);
 
-    if (!sharedStateReady || !canWriteFullAdminContent) return;
-
     const driverProfileJson = JSON.stringify(driverProfile);
+
+    if (suppressNextDriverProfilePersistenceRef.current) {
+      suppressNextDriverProfilePersistenceRef.current = false;
+      return;
+    }
+
+    if (!sharedStateReady || !canWriteFullAdminContent) return;
 
     if (driverProfileJson === lastSharedDriverProfileJsonRef.current) {
       return;
     }
 
-    lastSharedDriverProfileJsonRef.current = driverProfileJson;
-    saveSharedDriverProfile(driverProfile);
+    lastLocalDriverProfileEditAtRef.current = Date.now();
+
+    const saveTimer = window.setTimeout(() => {
+      lastSharedDriverProfileJsonRef.current = driverProfileJson;
+      saveSharedDriverProfile(driverProfile);
+    }, 800);
+
+    return () => window.clearTimeout(saveTimer);
   }, [driverProfile, sharedStateReady, canWriteFullAdminContent]);
 
   // ===== TIP OPTIONS PERSISTENCE =====
@@ -682,9 +705,65 @@ export default function App() {
     });
   }, [page, isPassengerPage, deviceIsPaired, shouldWaitForPairingValidation]);
 
+  // ===== PASSENGER ATTRACT MODE / SCREEN SAVER =====
+  useEffect(() => {
+    if (
+      !isPassengerPage ||
+      !deviceIsPaired ||
+      shouldWaitForPairingValidation ||
+      page === "mirror"
+    ) {
+      setAttractModeVisible(false);
+      return undefined;
+    }
+
+    const attractDelay = 75 * 1000;
+    let attractTimer;
+
+    function resetAttractTimer() {
+      setAttractModeVisible(false);
+      window.clearTimeout(attractTimer);
+
+      attractTimer = window.setTimeout(() => {
+        setAttractModeVisible(true);
+      }, attractDelay);
+    }
+
+    const activityEvents = ["click", "touchstart", "pointerdown", "keydown"];
+
+    activityEvents.forEach((eventName) => {
+      window.addEventListener(eventName, resetAttractTimer, { passive: true });
+    });
+
+    resetAttractTimer();
+
+    return () => {
+      window.clearTimeout(attractTimer);
+
+      activityEvents.forEach((eventName) => {
+        window.removeEventListener(eventName, resetAttractTimer);
+      });
+    };
+  }, [
+    isPassengerPage,
+    deviceIsPaired,
+    shouldWaitForPairingValidation,
+    page,
+  ]);
+
+  function dismissAttractMode() {
+    setAttractModeVisible(false);
+    setPage("home");
+  }
+
+  function navigateFromAttractMode(nextPage) {
+    setAttractModeVisible(false);
+    setPage(nextPage || "home");
+  }
+
   // ===== PASSENGER SCREEN AUTO-RESET =====
   useEffect(() => {
-    if (isDriverConsole || isAdminPage) return undefined;
+    if (isDriverConsole || isAdminPage || isDeveloperPage || isPairingPage) return undefined;
 
     const resetDelay = 5 * 60 * 1000;
     let resetTimer;
@@ -931,7 +1010,7 @@ export default function App() {
           <GuestbookPage entries={entries} setEntries={setEntries} t={t} />
         )}
 
-        {page === "ads" && <AdsPage ads={ads} appLanguage={appLanguage} t={t} />}
+        {page === "ads" && <AdsPage ads={ads} t={t} />}
 
         {page === "games" && (
           <GamesPage
@@ -958,6 +1037,15 @@ export default function App() {
             t={t}
           />
         )}
+
+        <PassengerAttractMode
+          visible={attractModeVisible}
+          onDismiss={dismissAttractMode}
+          onNavigate={navigateFromAttractMode}
+          driverName={driverProfile?.name || ""}
+          featuredAd={featuredAd}
+          t={t}
+        />
       </div>
     </main>
   );

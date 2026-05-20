@@ -183,29 +183,64 @@ export default function AdminPage({
   const [driverCameraFacing, setDriverCameraFacing] = useState("user");
   const [driverCameraError, setDriverCameraError] = useState("");
 
+  // ===== DRIVER PROFILE DRAFT STATE =====
+  // Editing directly against the shared driverProfile state caused Firestore
+  // echo/listener feedback to interrupt text entry and make passenger text
+  // flicker while typing. Profile fields now edit a local Admin draft and only
+  // publish to the live passenger state when Save Driver Profile is pressed.
+  const [driverProfileDraft, setDriverProfileDraft] = useState(driverProfile);
+  const [driverProfileDirty, setDriverProfileDirty] = useState(false);
+  const [driverProfileMessage, setDriverProfileMessage] = useState("");
+
   // ===== DRIVER PROFILE HELPERS =====
+  useEffect(() => {
+    if (driverProfileDirty) return;
+    setDriverProfileDraft(driverProfile);
+  }, [driverProfile, driverProfileDirty]);
+
   function updateDriverProfile(field, value) {
-    setDriverProfile({ ...driverProfile, [field]: value });
+    setDriverProfileMessage("");
+    setDriverProfileDirty(true);
+    setDriverProfileDraft((currentProfile) => ({
+      ...currentProfile,
+      [field]: value,
+    }));
   }
 
   function updateDriverBioTranslation(language, value) {
-    setDriverProfile({
-      ...driverProfile,
+    setDriverProfileMessage("");
+    setDriverProfileDirty(true);
+    setDriverProfileDraft((currentProfile) => ({
+      ...currentProfile,
       bioTranslations: {
-        ...(driverProfile.bioTranslations || {}),
+        ...(currentProfile.bioTranslations || {}),
         [language]: value,
       },
-    });
+    }));
   }
 
   function updateDriverLocalTipTranslation(language, value) {
-    setDriverProfile({
-      ...driverProfile,
+    setDriverProfileMessage("");
+    setDriverProfileDirty(true);
+    setDriverProfileDraft((currentProfile) => ({
+      ...currentProfile,
       localTipTranslations: {
-        ...(driverProfile.localTipTranslations || {}),
+        ...(currentProfile.localTipTranslations || {}),
         [language]: value,
       },
-    });
+    }));
+  }
+
+  function saveDriverProfileDraft() {
+    setDriverProfile(driverProfileDraft);
+    setDriverProfileDirty(false);
+    setDriverProfileMessage("Driver profile saved.");
+  }
+
+  function resetDriverProfileDraft() {
+    setDriverProfileDraft(driverProfile);
+    setDriverProfileDirty(false);
+    setDriverProfileMessage("Driver profile changes discarded.");
   }
 
   // ===== APP SETTINGS HELPERS =====
@@ -230,7 +265,12 @@ export default function AdminPage({
 
     const reader = new FileReader();
     reader.onload = () => {
-      setDriverProfile({ ...driverProfile, photo: reader.result });
+      setDriverProfileDirty(true);
+      setDriverProfileMessage("");
+      setDriverProfileDraft((currentProfile) => ({
+        ...currentProfile,
+        photo: reader.result,
+      }));
     };
     reader.readAsDataURL(file);
   }
@@ -299,10 +339,12 @@ export default function AdminPage({
 
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    setDriverProfile({
-      ...driverProfile,
+    setDriverProfileDirty(true);
+    setDriverProfileMessage("");
+    setDriverProfileDraft((currentProfile) => ({
+      ...currentProfile,
       photo: canvas.toDataURL("image/jpeg", 0.85),
-    });
+    }));
 
     stopDriverCamera();
   }
@@ -1205,17 +1247,53 @@ export default function AdminPage({
           These details appear on the main passenger welcome screen.
         </p>
 
+        <div className="mt-4 rounded-2xl bg-slate-100 p-3 text-sm font-bold text-slate-600">
+          Profile edits are staged locally while you type. Press Save Driver Profile to publish them to the passenger tablet.
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={saveDriverProfileDraft}
+            disabled={!driverProfileDirty}
+            className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-black text-white disabled:bg-slate-300 disabled:text-slate-500"
+          >
+            Save Driver Profile
+          </button>
+
+          <button
+            type="button"
+            onClick={resetDriverProfileDraft}
+            disabled={!driverProfileDirty}
+            className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-black text-slate-700 disabled:opacity-40"
+          >
+            Discard Changes
+          </button>
+
+          {driverProfileDirty && (
+            <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-black uppercase tracking-wide text-amber-900">
+              Unsaved changes
+            </span>
+          )}
+
+          {driverProfileMessage && (
+            <span className="text-sm font-bold text-slate-500">
+              {driverProfileMessage}
+            </span>
+          )}
+        </div>
+
         <div className="mt-4 grid gap-3">
           {/* ===== DRIVER PROFILE BASIC INFO ===== */}
           <input
-            value={driverProfile.name}
+            value={driverProfileDraft.name || ""}
             onChange={(e) => updateDriverProfile("name", e.target.value)}
             placeholder="Driver name"
             className="rounded-2xl border border-slate-200 p-3 outline-none"
           />
 
           <textarea
-            value={driverProfile.bio}
+            value={driverProfileDraft.bio || ""}
             onChange={(e) => updateDriverProfile("bio", e.target.value)}
             placeholder="Short driver intro"
             rows={4}
@@ -1223,7 +1301,7 @@ export default function AdminPage({
           />
 
           <input
-            value={driverProfile.localTip}
+            value={driverProfileDraft.localTip || ""}
             onChange={(e) => updateDriverProfile("localTip", e.target.value)}
             placeholder="Favorite local tip or recommendation"
             className="rounded-2xl border border-slate-200 p-3 outline-none"
@@ -1241,7 +1319,7 @@ export default function AdminPage({
             </div>
 
             <textarea
-              value={driverProfile.bioTranslations?.es || ""}
+              value={driverProfileDraft.bioTranslations?.es || ""}
               onChange={(e) => updateDriverBioTranslation("es", e.target.value)}
               placeholder="Spanish driver intro"
               rows={3}
@@ -1249,7 +1327,7 @@ export default function AdminPage({
             />
 
             <input
-              value={driverProfile.localTipTranslations?.es || ""}
+              value={driverProfileDraft.localTipTranslations?.es || ""}
               onChange={(e) =>
                 updateDriverLocalTipTranslation("es", e.target.value)
               }
@@ -1269,7 +1347,7 @@ export default function AdminPage({
             </div>
 
             <textarea
-              value={driverProfile.bioTranslations?.fr || ""}
+              value={driverProfileDraft.bioTranslations?.fr || ""}
               onChange={(e) => updateDriverBioTranslation("fr", e.target.value)}
               placeholder="French driver intro"
               rows={3}
@@ -1277,7 +1355,7 @@ export default function AdminPage({
             />
 
             <input
-              value={driverProfile.localTipTranslations?.fr || ""}
+              value={driverProfileDraft.localTipTranslations?.fr || ""}
               onChange={(e) =>
                 updateDriverLocalTipTranslation("fr", e.target.value)
               }
@@ -1367,7 +1445,7 @@ export default function AdminPage({
           {driverProfile.photo && (
             <div className="flex items-center gap-3 rounded-2xl bg-slate-100 p-3">
               <img
-                src={driverProfile.photo}
+                src={driverProfileDraft.photo}
                 alt="Driver preview"
                 className="h-20 w-20 rounded-2xl object-cover"
               />
