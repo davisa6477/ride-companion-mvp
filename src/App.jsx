@@ -17,6 +17,7 @@ import AdminPage from "./components/admin/AdminPage.jsx";
 import DeveloperPortalPage from "./components/developer/DeveloperPortalPage.jsx";
 import DriverConsolePage from "./components/console/DriverConsolePage.jsx";
 import PassengerAttractMode from "./components/shared/PassengerAttractMode.jsx";
+import PassengerDriverMessagePopup from "./components/shared/PassengerDriverMessagePopup.jsx";
 
 import { createTranslator } from "./data/translations.js";
 import {
@@ -1046,6 +1047,8 @@ export default function App() {
           featuredAd={featuredAd}
           t={t}
         />
+
+        <PassengerDriverMessagePopup appLanguage={appLanguage} t={t} />
       </div>
     </main>
   );

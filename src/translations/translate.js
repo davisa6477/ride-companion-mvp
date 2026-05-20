@@ -2,6 +2,9 @@
 // Static text used by TranslationPage.jsx. Quick question mock translations live in the component for now.
 const translate = {
   en: {
+    driver_message_label: "Message from your driver",
+    driver_message_ack: "Got it",
+    driver_message_default: "Your driver sent you a message.",
     translate_title: "Translation Helper",
     translate_subtitle:
       "Choose your language and send simple questions to the driver.",
@@ -23,6 +26,9 @@ const translate = {
   },
 
   es: {
+    driver_message_label: "Mensaje de su conductor",
+    driver_message_ack: "Entendido",
+    driver_message_default: "Su conductor le envió un mensaje.",
     translate_title: "Ayuda de traducción",
     translate_subtitle:
       "Elija su idioma y envíe preguntas simples al conductor.",
@@ -45,6 +51,9 @@ const translate = {
   },
 
   fr: {
+    driver_message_label: "Message de votre chauffeur",
+    driver_message_ack: "Compris",
+    driver_message_default: "Votre chauffeur vous a envoyé un message.",
     translate_title: "Aide à la traduction",
     translate_subtitle:
       "Choisissez votre langue et envoyez des questions simples au chauffeur.",
@@ -66,6 +75,9 @@ const translate = {
       "Impossible de synchroniser la langue avec la console du chauffeur.",
   },
   de: {
+    driver_message_label: "Nachricht von Ihrem Fahrer",
+    driver_message_ack: "Verstanden",
+    driver_message_default: "Ihr Fahrer hat Ihnen eine Nachricht gesendet.",
     translate_title: "Übersetzungshilfe",
     translate_subtitle: "Wählen Sie Ihre Sprache und senden Sie einfache Fragen an den Fahrer.",
     reset_english: "Zurück zu Englisch",
@@ -83,6 +95,9 @@ const translate = {
   },
 
   pt: {
+    driver_message_label: "Mensagem do seu motorista",
+    driver_message_ack: "Entendi",
+    driver_message_default: "Seu motorista enviou uma mensagem.",
     translate_title: "Ajuda de tradução",
     translate_subtitle: "Escolha seu idioma e envie perguntas simples ao motorista.",
     reset_english: "Voltar para inglês",
@@ -100,6 +115,9 @@ const translate = {
   },
 
   zh: {
+    driver_message_label: "司机给您的消息",
+    driver_message_ack: "知道了",
+    driver_message_default: "您的司机给您发送了一条消息。",
     translate_title: "翻译助手",
     translate_subtitle: "选择您的语言，并向司机发送简单问题。",
     reset_english: "返回英语",
@@ -117,6 +135,9 @@ const translate = {
   },
 
   ar: {
+    driver_message_label: "رسالة من السائق",
+    driver_message_ack: "فهمت",
+    driver_message_default: "أرسل لك السائق رسالة.",
     translate_title: "مساعد الترجمة",
     translate_subtitle: "اختر لغتك وأرسل أسئلة بسيطة إلى السائق.",
     reset_english: "العودة إلى الإنجليزية",
@@ -134,6 +155,9 @@ const translate = {
   },
 
   vi: {
+    driver_message_label: "Tin nhắn từ tài xế",
+    driver_message_ack: "Đã hiểu",
+    driver_message_default: "Tài xế đã gửi tin nhắn cho bạn.",
     translate_title: "Trợ giúp dịch thuật",
     translate_subtitle: "Chọn ngôn ngữ của bạn và gửi câu hỏi đơn giản cho tài xế.",
     reset_english: "Quay lại tiếng Anh",
@@ -151,6 +175,9 @@ const translate = {
   },
 
   ko: {
+    driver_message_label: "운전자의 메시지",
+    driver_message_ack: "확인",
+    driver_message_default: "운전자가 메시지를 보냈습니다.",
     translate_title: "번역 도우미",
     translate_subtitle: "언어를 선택하고 운전자에게 간단한 질문을 보내세요.",
     reset_english: "영어로 돌아가기",
@@ -168,6 +195,9 @@ const translate = {
   },
 
   ja: {
+    driver_message_label: "ドライバーからのメッセージ",
+    driver_message_ack: "了解",
+    driver_message_default: "ドライバーからメッセージが届きました。",
     translate_title: "翻訳ヘルパー",
     translate_subtitle: "言語を選び、ドライバーに簡単な質問を送信します。",
     reset_english: "英語に戻す",
@@ -185,6 +215,9 @@ const translate = {
   },
 
   hi: {
+    driver_message_label: "आपके ड्राइवर का संदेश",
+    driver_message_ack: "समझ गया",
+    driver_message_default: "आपके ड्राइवर ने आपको संदेश भेजा है।",
     translate_title: "अनुवाद सहायक",
     translate_subtitle: "अपनी भाषा चुनें और ड्राइवर को सरल प्रश्न भेजें।",
     reset_english: "अंग्रेज़ी पर वापस जाएँ",

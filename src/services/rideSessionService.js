@@ -115,6 +115,50 @@ export async function sendConsoleNotification(notification = {}) {
   );
 }
 
+
+// ===== DRIVER → PASSENGER MESSAGE SYNC =====
+// Called from the driver console to show a translated popup on the passenger tablet.
+export async function sendDriverMessageToPassenger(message = {}) {
+  const messageId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  return setDoc(
+    getRideSessionRef(),
+    {
+      latestDriverMessage: {
+        id: messageId,
+        key: message.key || "driver_custom",
+        english: message.english || message.message || "",
+        translations: message.translations || {},
+        severity: message.severity || "info",
+        acknowledged: false,
+        createdAt: serverTimestamp(),
+        createdAtMs: Date.now(),
+        deviceMetadata: getLocalDeviceMetadata(),
+      },
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+}
+
+// ===== PASSENGER ACKNOWLEDGES DRIVER MESSAGE =====
+// Called from the passenger tablet popup.
+export async function acknowledgeDriverMessage(messageId) {
+  return setDoc(
+    getRideSessionRef(),
+    {
+      latestDriverMessage: {
+        id: messageId,
+        acknowledged: true,
+        acknowledgedAt: serverTimestamp(),
+        acknowledgedByDevice: getLocalDeviceMetadata(),
+      },
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+}
+
 // ===== PASSENGER PAGE STATUS SYNC =====
 // Called from the passenger tablet whenever the visible passenger page changes.
 // The driver console listens to this value through listenToRideSession().

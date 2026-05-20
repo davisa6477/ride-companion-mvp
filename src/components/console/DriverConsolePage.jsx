@@ -3,6 +3,7 @@ import { Bell, CheckCircle2, Clock3, Monitor, Trash2, User, Volume2, VolumeX } f
 import {
   listenToPassengerRequests,
   listenToRideSession,
+  sendDriverMessageToPassenger,
   updatePassengerRequestStatus,
 } from "../../services/rideSessionService.js";
 import DriverTranslationCard from "./DriverTranslationCard.jsx";
@@ -88,11 +89,95 @@ function saveConsoleSoundSettings(settings) {
   }
 }
 
+const DRIVER_MESSAGE_TEMPLATES = [
+  {
+    key: "driver_ok",
+    english: "Okay, no problem.",
+    translations: {
+      es: "Está bien, no hay problema.",
+      fr: "D’accord, pas de problème.",
+      de: "Okay, kein Problem.",
+      pt: "Tudo bem, sem problema.",
+      zh: "好的，没问题。",
+      ar: "حسنًا، لا مشكلة.",
+      vi: "Được rồi, không vấn đề gì.",
+      ko: "알겠습니다, 문제없어요.",
+      ja: "わかりました。問題ありません。",
+      hi: "ठीक है, कोई समस्या नहीं।",
+    },
+  },
+  {
+    key: "driver_one_moment",
+    english: "One moment, please.",
+    translations: {
+      es: "Un momento, por favor.",
+      fr: "Un instant, s’il vous plaît.",
+      de: "Einen Moment bitte.",
+      pt: "Um momento, por favor.",
+      zh: "请稍等。",
+      ar: "لحظة من فضلك.",
+      vi: "Vui lòng chờ một chút.",
+      ko: "잠시만 기다려 주세요.",
+      ja: "少々お待ちください。",
+      hi: "कृपया एक क्षण प्रतीक्षा करें।",
+    },
+  },
+  {
+    key: "driver_safe_delay",
+    english: "I saw your request. I’ll respond when it is safe.",
+    translations: {
+      es: "Vi su solicitud. Responderé cuando sea seguro.",
+      fr: "J’ai vu votre demande. Je répondrai quand ce sera sécuritaire.",
+      de: "Ich habe Ihre Anfrage gesehen. Ich antworte, sobald es sicher ist.",
+      pt: "Vi sua solicitação. Responderei quando for seguro.",
+      zh: "我看到了您的请求。安全时我会回复。",
+      ar: "رأيت طلبك. سأرد عندما يكون ذلك آمنًا.",
+      vi: "Tôi đã thấy yêu cầu của bạn. Tôi sẽ phản hồi khi an toàn.",
+      ko: "요청을 확인했습니다. 안전할 때 답변하겠습니다.",
+      ja: "リクエストを確認しました。安全な時に対応します。",
+      hi: "मैंने आपका अनुरोध देखा है। सुरक्षित होने पर जवाब दूँगा।",
+    },
+  },
+  {
+    key: "driver_route_app",
+    english: "For route or destination changes, please use your ride app.",
+    translations: {
+      es: "Para cambios de ruta o destino, use la aplicación del viaje.",
+      fr: "Pour modifier l’itinéraire ou la destination, veuillez utiliser votre application de course.",
+      de: "Für Routen- oder Zieländerungen verwenden Sie bitte Ihre Fahrten-App.",
+      pt: "Para alterar rota ou destino, use o aplicativo da viagem.",
+      zh: "如需更改路线或目的地，请使用您的叫车应用。",
+      ar: "لتغيير المسار أو الوجهة، يرجى استخدام تطبيق الرحلة.",
+      vi: "Để đổi tuyến đường hoặc điểm đến, vui lòng dùng ứng dụng chuyến đi.",
+      ko: "경로나 목적지 변경은 승차 앱을 사용해 주세요.",
+      ja: "ルートや目的地の変更は配車アプリをご利用ください。",
+      hi: "मार्ग या गंतव्य बदलने के लिए कृपया अपनी राइड ऐप का उपयोग करें।",
+    },
+  },
+  {
+    key: "driver_thank_you",
+    english: "Thank you, I appreciate it!",
+    translations: {
+      es: "¡Gracias, lo aprecio mucho!",
+      fr: "Merci, j’apprécie beaucoup !",
+      de: "Danke, ich weiß das zu schätzen!",
+      pt: "Obrigado, eu agradeço!",
+      zh: "谢谢，我很感激！",
+      ar: "شكرًا لك، أقدّر ذلك!",
+      vi: "Cảm ơn, tôi rất trân trọng!",
+      ko: "감사합니다, 정말 고맙습니다!",
+      ja: "ありがとうございます。感謝します！",
+      hi: "धन्यवाद, मैं इसकी सराहना करता हूँ!",
+    },
+  },
+];
+
 export default function DriverConsolePage() {
   // ===== LIVE REQUEST STATE =====
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [consoleError, setConsoleError] = useState("");
+  const [driverMessageStatus, setDriverMessageStatus] = useState("");
   const [rideSession, setRideSession] = useState({});
   const [soundEnabled, setSoundEnabled] = useState(() => loadConsoleSoundEnabled());
   const [soundReady, setSoundReady] = useState(false);
@@ -281,6 +366,19 @@ export default function DriverConsolePage() {
   const pendingCount = visibleRequests.filter(
     (request) => request.status === "pending"
   ).length;
+
+  // ===== DRIVER → PASSENGER MESSAGE =====
+  async function sendDriverMessage(template) {
+    setDriverMessageStatus("");
+
+    try {
+      await sendDriverMessageToPassenger(template);
+      setDriverMessageStatus(`Sent: ${template.english}`);
+    } catch (error) {
+      console.error("Failed to send driver message:", error);
+      setDriverMessageStatus("Could not send driver message.");
+    }
+  }
 
   // ===== ACKNOWLEDGE REQUEST =====
   async function acknowledgeRequest(id) {
@@ -615,6 +713,46 @@ export default function DriverConsolePage() {
 
         {/* ===== DRIVER TRANSLATION STATUS / LANGUAGE SYNC ===== */}
         <DriverTranslationCard />
+
+        {/* ===== DRIVER → PASSENGER TRANSLATED MESSAGES ===== */}
+        <section className="mt-4 rounded-3xl bg-white/10 p-4 backdrop-blur">
+          <div>
+            <h2 className="text-xl font-black">Driver Messages</h2>
+            <p className="text-sm text-white/50">
+              Send a translated popup to the passenger tablet with an acknowledgment button.
+            </p>
+          </div>
+
+          <div className="mt-4 grid gap-2">
+            {DRIVER_MESSAGE_TEMPLATES.map((template) => (
+              <button
+                key={template.key}
+                type="button"
+                onClick={() => sendDriverMessage(template)}
+                className="rounded-2xl bg-white/10 p-3 text-left text-sm font-black text-white hover:bg-white/20"
+              >
+                {template.english}
+              </button>
+            ))}
+          </div>
+
+          {driverMessageStatus && (
+            <div className="mt-3 rounded-2xl bg-white/5 p-3 text-sm font-bold text-white/60">
+              {driverMessageStatus}
+            </div>
+          )}
+
+          {rideSession.latestDriverMessage?.id && (
+            <div className="mt-3 rounded-2xl bg-white/5 p-3 text-xs font-bold text-white/45">
+              Latest passenger message:{" "}
+              <span className="text-white/70">
+                {rideSession.latestDriverMessage.acknowledged
+                  ? "Acknowledged"
+                  : "Waiting for passenger acknowledgment"}
+              </span>
+            </div>
+          )}
+        </section>
 
         {/* ===== DRIVER / SYSTEM STATUS PANEL ===== */}
         <section className="mt-4 rounded-3xl bg-white/10 p-4 backdrop-blur">
