@@ -4,6 +4,11 @@ import PageCard from "../layout/PageCard.jsx";
 import { PAGE_FRAME_CLASS } from "../../config/pageFrame.js";
 import { setPassengerLanguage } from "../../services/rideSessionService.js";
 import { translateDriverMessage } from "../../services/dynamicTranslationApiService.js";
+import {
+  sendConsoleNotification,
+  sendPassengerRequest,
+} from "../../services/rideSessionService.js";
+import { translateRuntimeText } from "../../services/runtimeDynamicTranslationService.js";
 
 // ===== SUPPORTED PASSENGER LANGUAGES =====
 // This list controls the dropdown in the passenger translation helper.
@@ -21,6 +26,36 @@ const supportedLanguages = [
   { code: "hi", label: "Hindi", lang: "hi", dir: "ltr" },
 ];
 
+
+const TRANSLATION_UI_TEXT = {
+  title: "Translation Helper",
+  subtitle:
+    "Choose your language. The tablet and driver console will follow your selection.",
+  backToEnglish: "Back to English",
+  passengerLanguage: "Passenger language",
+  currentSetup: "Current setup",
+  keyboardNote:
+    "Keyboard language is controlled by the tablet’s operating system. This page can hint the text language to the browser, but passengers may need to switch keyboards from the on-screen keyboard.",
+  requestsNote:
+    "Quick needs like temperature, music, windows, stops, and comfort are now handled in the Requests tab.",
+  passengerToDriver: "Passenger → Driver",
+  typeOnly:
+    "Type a custom message. The English version can be sent to the driver console.",
+  typeIn: "Type in",
+  translateToEnglish: "Translate to English",
+  translating: "Translating...",
+  sendToDriver: "Send to Driver",
+  sending: "Sending...",
+  englishResult: "English message appears here.",
+  privacyNote:
+    "Short messages translate best. If translation is unavailable, the original text can still be sent.",
+  syncError: "Could not sync language to driver console.",
+  apiFailed: "Translation failed. Showing the original message instead.",
+  sendEmpty: "Type and translate a message before sending.",
+  sendSuccess: "Message sent to the driver console.",
+  sendError: "Could not send message to the driver console.",
+};
+
 export default function TranslationPage({
   appLanguage = "en",
   setAppLanguage = () => {},
@@ -31,12 +66,19 @@ export default function TranslationPage({
   const [passengerText, setPassengerText] = useState("");
   const [englishResult, setEnglishResult] = useState("");
   const [syncError, setSyncError] = useState("");
+  const [sendStatus, setSendStatus] = useState("");
   const [translating, setTranslating] = useState(false);
+  const [sendingToDriver, setSendingToDriver] = useState(false);
+  const [runtimeUiText, setRuntimeUiText] = useState({});
 
   // ===== STATIC TRANSLATION HELPER =====
   function tr(key, fallback) {
     const translated = t(key);
     return translated === key ? fallback : translated;
+  }
+
+  function uiText(key) {
+    return runtimeUiText[key] || tr(`translate_${key}`, TRANSLATION_UI_TEXT[key]);
   }
 
   // ===== SELECTED LANGUAGE METADATA =====
@@ -51,6 +93,45 @@ export default function TranslationPage({
   const selectedInputLang = selectedLanguageConfig.lang || selectedLanguage;
   const selectedTextDirection = selectedLanguageConfig.dir || "ltr";
 
+  // ===== RUNTIME UI TEXT TRANSLATION =====
+  // Some newer Translation-tab helper text may not exist in the static dictionary yet.
+  // Translate those labels on the tablet so the whole tab follows the passenger language.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function translateTranslationTabText() {
+      if (!selectedLanguage || selectedLanguage === "en") {
+        setRuntimeUiText({});
+        return;
+      }
+
+      try {
+        const translatedEntries = await Promise.all(
+          Object.entries(TRANSLATION_UI_TEXT).map(async ([key, value]) => [
+            key,
+            await translateRuntimeText(value, selectedLanguage),
+          ])
+        );
+
+        if (!cancelled) {
+          setRuntimeUiText(Object.fromEntries(translatedEntries));
+        }
+      } catch (error) {
+        console.error("Runtime translation tab text translation failed:", error);
+
+        if (!cancelled) {
+          setRuntimeUiText({});
+        }
+      }
+    }
+
+    translateTranslationTabText();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedLanguage]);
+
   // ===== KEEP LOCAL PAGE STATE IN SYNC WITH APP LANGUAGE =====
   useEffect(() => {
     setSelectedLanguage(appLanguage || "en");
@@ -60,6 +141,7 @@ export default function TranslationPage({
   // Updates local app language and syncs the selection to Firestore for the driver console.
   async function applyLanguage(nextLanguage) {
     setSyncError("");
+    setSendStatus("");
     setSelectedLanguage(nextLanguage);
     setAppLanguage(nextLanguage);
 
@@ -71,7 +153,7 @@ export default function TranslationPage({
       setSyncError(
         tr(
           "translate_sync_error",
-          "Could not sync language to driver console."
+          TRANSLATION_UI_TEXT.syncError
         )
       );
     }
@@ -82,6 +164,7 @@ export default function TranslationPage({
     applyLanguage("en");
     setPassengerText("");
     setEnglishResult("");
+    setSendStatus("");
   }
 
   // ===== PASSENGER TEXT TO ENGLISH =====
@@ -90,6 +173,7 @@ export default function TranslationPage({
 
     if (!trimmedText) {
       setEnglishResult("");
+      setSendStatus("");
       return;
     }
 
@@ -100,6 +184,7 @@ export default function TranslationPage({
 
     setTranslating(true);
     setSyncError("");
+    setSendStatus("");
 
     try {
       const translation = await translateDriverMessage({
@@ -115,11 +200,52 @@ export default function TranslationPage({
       setSyncError(
         tr(
           "translate_api_failed",
-          "Translation failed. Showing the original message instead."
+          TRANSLATION_UI_TEXT.apiFailed
         )
       );
     } finally {
       setTranslating(false);
+    }
+  }
+
+  // ===== SEND TRANSLATED MESSAGE TO DRIVER CONSOLE =====
+  async function sendTranslatedMessageToDriver() {
+    const originalText = passengerText.trim();
+    const englishText = englishResult.trim() || originalText;
+
+    setSendStatus("");
+
+    if (!originalText || !englishText) {
+      setSendStatus(uiText("sendEmpty"));
+      return;
+    }
+
+    setSendingToDriver(true);
+
+    try {
+      await sendPassengerRequest({
+        category: "Translation",
+        type: "translation",
+        message: englishText,
+        originalMessage: originalText,
+        originalLanguage: selectedLanguage,
+        originalLanguageLabel: selectedLanguageLabel,
+      });
+
+      await sendConsoleNotification({
+        type: "request",
+        label: "Passenger Translation",
+        message: englishText,
+      });
+
+      setSendStatus(uiText("sendSuccess"));
+      setPassengerText("");
+      setEnglishResult("");
+    } catch (error) {
+      console.error("Failed to send translated message to driver:", error);
+      setSendStatus(uiText("sendError"));
+    } finally {
+      setSendingToDriver(false);
     }
   }
 
@@ -135,14 +261,11 @@ export default function TranslationPage({
 
             <div>
               <h2 className="text-3xl font-black text-slate-950">
-                {tr("translate_title", "Translation Helper")}
+                {uiText("title")}
               </h2>
 
               <p className="text-slate-600">
-                {tr(
-                  "translate_subtitle_clean",
-                  "Choose your language. The tablet and driver console will follow your selection."
-                )}
+                {uiText("subtitle")}
               </p>
             </div>
           </div>
@@ -153,7 +276,7 @@ export default function TranslationPage({
             className="flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 font-black text-white"
           >
             <RefreshCcw size={18} />
-            {tr("reset_english", "Back to English")}
+            {uiText("backToEnglish")}
           </button>
         </div>
 
@@ -170,7 +293,7 @@ export default function TranslationPage({
           <section className="grid content-start gap-4">
             <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
               <label className="text-sm font-black uppercase tracking-wide text-slate-500">
-                {tr("translate_language_label", "Passenger language")}
+                {uiText("passengerLanguage")}
               </label>
 
               <select
@@ -188,7 +311,7 @@ export default function TranslationPage({
 
             <div className="rounded-3xl bg-slate-950 p-5 text-white">
               <div className="text-sm font-black uppercase tracking-wide text-white/50">
-                {tr("translate_current_setup", "Current setup")}
+                {uiText("currentSetup")}
               </div>
 
               <div className="mt-2 text-3xl font-black">
@@ -196,18 +319,12 @@ export default function TranslationPage({
               </div>
 
               <p className="mt-3 text-sm font-bold leading-relaxed text-white/60">
-                {tr(
-                  "translate_keyboard_note",
-                  "Keyboard language is controlled by the tablet’s operating system. This page can hint the text language to the browser, but passengers may need to switch keyboards from the on-screen keyboard."
-                )}
+                {uiText("keyboardNote")}
               </p>
             </div>
 
             <div className="rounded-3xl bg-emerald-50 p-5 text-sm font-bold leading-relaxed text-emerald-900">
-              {tr(
-                "translate_requests_note",
-                "Quick needs like temperature, music, windows, stops, and comfort are now handled in the Requests tab."
-              )}
+              {uiText("requestsNote")}
             </div>
           </section>
 
@@ -220,14 +337,11 @@ export default function TranslationPage({
 
               <div>
                 <h3 className="text-2xl font-black text-slate-950">
-                  {tr("translate_passenger_to_driver", "Passenger → Driver")}
+                  {uiText("passengerToDriver")}
                 </h3>
 
                 <p className="text-sm text-slate-500">
-                  {tr(
-                    "translate_type_only",
-                    "Type a custom message. The English version appears below."
-                  )}
+                  {uiText("typeOnly")}
                 </p>
               </div>
             </div>
@@ -235,7 +349,7 @@ export default function TranslationPage({
             <textarea
               value={passengerText}
               onChange={(event) => setPassengerText(event.target.value)}
-              placeholder={`${tr("translate_type_in", "Type in")} ${selectedLanguageLabel}...`}
+              placeholder={`${uiText("typeIn")} ${selectedLanguageLabel}...`}
               rows={6}
               lang={selectedInputLang}
               dir={selectedTextDirection}
@@ -251,20 +365,32 @@ export default function TranslationPage({
               className="mt-3 w-full rounded-2xl bg-slate-950 p-4 text-lg font-black text-white disabled:opacity-50"
             >
               {translating
-                ? tr("translate_translating", "Translating...")
-                : tr("translate_to_english", "Translate to English")}
+                ? uiText("translating")
+                : uiText("translateToEnglish")}
             </button>
+
+            <button
+              type="button"
+              onClick={sendTranslatedMessageToDriver}
+              disabled={sendingToDriver || (!englishResult.trim() && !passengerText.trim())}
+              className="mt-3 w-full rounded-2xl bg-emerald-500 p-4 text-lg font-black text-white shadow-lg disabled:opacity-50"
+            >
+              {sendingToDriver ? uiText("sending") : uiText("sendToDriver")}
+            </button>
+
+            {sendStatus && (
+              <div className="mt-3 rounded-2xl bg-slate-100 p-3 text-sm font-black text-slate-700">
+                {sendStatus}
+              </div>
+            )}
 
             <div className="mt-4 min-h-[140px] whitespace-pre-line rounded-2xl bg-slate-950 p-5 text-2xl font-black leading-relaxed text-white">
               {englishResult ||
-                tr("translate_english_result", "English message appears here.")}
+                uiText("englishResult")}
             </div>
 
             <p className="mt-3 text-xs font-bold text-slate-400">
-              {tr(
-                "translate_privacy_note",
-                "Short messages translate best. If translation is unavailable, the original text remains visible."
-              )}
+              {uiText("privacyNote")}
             </p>
           </section>
         </div>

@@ -850,6 +850,18 @@ export default function DriverConsolePage() {
                   {request.message || "Passenger request"}
                 </div>
 
+                {request.type === "translation" && request.originalMessage && (
+                  <div className="mt-3 rounded-2xl bg-white/10 p-3">
+                    <div className="text-[10px] font-black uppercase tracking-wide text-white/45">
+                      Original {request.originalLanguageLabel || request.originalLanguage || "passenger language"}
+                    </div>
+
+                    <div className="mt-1 text-sm font-bold leading-relaxed text-white/75">
+                      {request.originalMessage}
+                    </div>
+                  </div>
+                )}
+
                 <div className="mt-2 flex items-center gap-2 text-sm text-white/50">
                   <Clock3 size={15} />
                   {formatRequestTime(request.createdAt)}
