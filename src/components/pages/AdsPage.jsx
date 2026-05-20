@@ -3,9 +3,11 @@
 // Supports future manually translated headline/description fields while
 // preserving original admin-entered ad content as fallback.
 
+import { useEffect, useMemo, useState } from "react";
 import PageCard from "../layout/PageCard.jsx";
 import { PAGE_FRAME_CLASS } from "../../config/pageFrame.js";
 import { getTranslatedField } from "../../utils/dynamicFields.js";
+import { translateRuntimeFields } from "../../services/runtimeDynamicTranslationService.js";
 
 export default function AdsPage({
   ads = [],
@@ -19,7 +21,48 @@ export default function AdsPage({
   }
 
   // ===== ACTIVE ADS ONLY =====
-  const activeAds = ads.filter((ad) => ad.active);
+  const activeAds = useMemo(() => ads.filter((ad) => ad.active), [ads]);
+  const [runtimeAdTranslations, setRuntimeAdTranslations] = useState({});
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function translateAdsForTablet() {
+      if (!appLanguage || appLanguage === "en" || activeAds.length === 0) {
+        setRuntimeAdTranslations({});
+        return;
+      }
+
+      try {
+        const translatedEntries = await Promise.all(
+          activeAds.map(async (ad) => [
+            ad.id,
+            await translateRuntimeFields(
+              ad,
+              ["businessName", "headline", "description", "category"],
+              appLanguage
+            ),
+          ])
+        );
+
+        if (!cancelled) {
+          setRuntimeAdTranslations(Object.fromEntries(translatedEntries));
+        }
+      } catch (error) {
+        console.error("Runtime ad translation failed:", error);
+
+        if (!cancelled) {
+          setRuntimeAdTranslations({});
+        }
+      }
+    }
+
+    translateAdsForTablet();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeAds, appLanguage]);
 
   return (
     <PageCard className={`${PAGE_FRAME_CLASS} flex min-h-0 flex-col overflow-hidden`}>
@@ -50,10 +93,17 @@ export default function AdsPage({
       {activeAds.length > 0 && (
         <div className="grid gap-4 md:grid-cols-2">
           {activeAds.map((ad) => {
-            const businessName = getTranslatedField(ad, "businessName", appLanguage);
-            const headline = getTranslatedField(ad, "headline", appLanguage);
-            const description = getTranslatedField(ad, "description", appLanguage);
-            const category = getTranslatedField(ad, "category", appLanguage);
+            const runtimeFields = runtimeAdTranslations[ad.id] || {};
+            const businessName =
+              runtimeFields.businessName ||
+              getTranslatedField(ad, "businessName", appLanguage);
+            const headline =
+              runtimeFields.headline || getTranslatedField(ad, "headline", appLanguage);
+            const description =
+              runtimeFields.description ||
+              getTranslatedField(ad, "description", appLanguage);
+            const category =
+              runtimeFields.category || getTranslatedField(ad, "category", appLanguage);
 
             return (
               <div

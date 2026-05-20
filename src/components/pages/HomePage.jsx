@@ -2,13 +2,14 @@
 // Displays driver profile, manual driver text translations, featured ad,
 // direct tipping modal entry point, and quick navigation buttons.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { MessageSquareHeart, QrCode, ShieldCheck, Store } from "lucide-react";
 import PageCard from "../layout/PageCard.jsx";
 import TipModal from "../shared/TipModal.jsx";
 import { PAGE_FRAME_CLASS } from "../../config/pageFrame.js";
 import { getTranslatedField } from "../../utils/dynamicFields.js";
+import { translateRuntimeFields } from "../../services/runtimeDynamicTranslationService.js";
 
 export default function HomePage({
   setPage,
@@ -32,27 +33,100 @@ export default function HomePage({
     return translated === key ? fallback : translated;
   }
 
+  // ===== TABLET RUNTIME TRANSLATION STATE =====
+  const [runtimeDriverTranslations, setRuntimeDriverTranslations] = useState({});
+  const [runtimeFeaturedAdTranslations, setRuntimeFeaturedAdTranslations] = useState({});
+
   // ===== DYNAMIC FIELD TRANSLATION FALLBACKS =====
   // Prefer manually supplied selected-language text, otherwise default to the
   // English/admin-entered field.
-  const translatedBio = getTranslatedField(driverProfile, "bio", appLanguage);
-  const translatedLocalTip = getTranslatedField(
-    driverProfile,
-    "localTip",
-    appLanguage
-  );
+  const translatedBio =
+    runtimeDriverTranslations.bio ||
+    getTranslatedField(driverProfile, "bio", appLanguage);
+  const translatedLocalTip =
+    runtimeDriverTranslations.localTip ||
+    getTranslatedField(driverProfile, "localTip", appLanguage);
 
-  const featuredBusinessName = getTranslatedField(
-    featuredAd,
-    "businessName",
-    appLanguage
-  );
-  const featuredHeadline = getTranslatedField(featuredAd, "headline", appLanguage);
-  const featuredDescription = getTranslatedField(
-    featuredAd,
-    "description",
-    appLanguage
-  );
+  const featuredBusinessName =
+    runtimeFeaturedAdTranslations.businessName ||
+    getTranslatedField(featuredAd, "businessName", appLanguage);
+  const featuredHeadline =
+    runtimeFeaturedAdTranslations.headline ||
+    getTranslatedField(featuredAd, "headline", appLanguage);
+  const featuredDescription =
+    runtimeFeaturedAdTranslations.description ||
+    getTranslatedField(featuredAd, "description", appLanguage);
+
+  // ===== TABLET RUNTIME TRANSLATION EFFECTS =====
+  useEffect(() => {
+    let cancelled = false;
+
+    async function translateDriverFieldsForTablet() {
+      if (!appLanguage || appLanguage === "en") {
+        setRuntimeDriverTranslations({});
+        return;
+      }
+
+      try {
+        const translatedFields = await translateRuntimeFields(
+          driverProfile,
+          ["bio", "localTip"],
+          appLanguage
+        );
+
+        if (!cancelled) {
+          setRuntimeDriverTranslations(translatedFields);
+        }
+      } catch (error) {
+        console.error("Runtime driver profile translation failed:", error);
+
+        if (!cancelled) {
+          setRuntimeDriverTranslations({});
+        }
+      }
+    }
+
+    translateDriverFieldsForTablet();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [driverProfile, appLanguage]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function translateFeaturedAdForTablet() {
+      if (!featuredAd || !appLanguage || appLanguage === "en") {
+        setRuntimeFeaturedAdTranslations({});
+        return;
+      }
+
+      try {
+        const translatedFields = await translateRuntimeFields(
+          featuredAd,
+          ["businessName", "headline", "description"],
+          appLanguage
+        );
+
+        if (!cancelled) {
+          setRuntimeFeaturedAdTranslations(translatedFields);
+        }
+      } catch (error) {
+        console.error("Runtime featured ad translation failed:", error);
+
+        if (!cancelled) {
+          setRuntimeFeaturedAdTranslations({});
+        }
+      }
+    }
+
+    translateFeaturedAdForTablet();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [featuredAd, appLanguage]);
 
   return (
     <div className={`grid gap-5 lg:grid-cols-[1.2fr_.8fr] ${PAGE_FRAME_CLASS}`}>
