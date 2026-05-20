@@ -1,5 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bell, CheckCircle2, Clock3, Monitor, Trash2, User, Volume2, VolumeX } from "lucide-react";
+import {
+  Bell,
+  CheckCircle2,
+  Clock3,
+  Menu,
+  MessageSquareHeart,
+  Monitor,
+  Send,
+  Settings,
+  Trash2,
+  User,
+  Volume2,
+  VolumeX,
+  X,
+} from "lucide-react";
 import {
   listenToPassengerRequests,
   listenToRideSession,
@@ -172,13 +186,33 @@ const DRIVER_MESSAGE_TEMPLATES = [
   },
 ];
 
+const CONSOLE_SECTIONS = [
+  {
+    id: "communication",
+    label: "Communication",
+    icon: MessageSquareHeart,
+    description: "Requests and driver messages",
+  },
+  {
+    id: "settings",
+    label: "Settings",
+    icon: Settings,
+    description: "Sound and system configuration",
+  },
+];
+
 export default function DriverConsolePage() {
   // ===== LIVE REQUEST STATE =====
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [consoleError, setConsoleError] = useState("");
   const [driverMessageStatus, setDriverMessageStatus] = useState("");
+  const [customDriverMessage, setCustomDriverMessage] = useState("");
   const [rideSession, setRideSession] = useState({});
+  const [consoleSection, setConsoleSection] = useState("communication");
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // ===== CONSOLE SOUND STATE =====
   const [soundEnabled, setSoundEnabled] = useState(() => loadConsoleSoundEnabled());
   const [soundReady, setSoundReady] = useState(false);
   const [soundSettings, setSoundSettings] = useState(() =>
@@ -206,7 +240,6 @@ export default function DriverConsolePage() {
     return true;
   }
 
-  // ===== CONSOLE SOUND HELPERS =====
   function initializeSound() {
     try {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -275,7 +308,11 @@ export default function DriverConsolePage() {
       oscillator.frequency.setValueAtTime(frequency, now);
 
       const attackVolume =
-        soundSettings.soundType === "subtle" ? 0.11 : soundSettings.soundType === "bright" ? 0.28 : 0.2;
+        soundSettings.soundType === "subtle"
+          ? 0.11
+          : soundSettings.soundType === "bright"
+          ? 0.28
+          : 0.2;
 
       gain.gain.setValueAtTime(0.0001, now);
       gain.gain.exponentialRampToValueAtTime(attackVolume * baseVolume, now + 0.015);
@@ -291,7 +328,8 @@ export default function DriverConsolePage() {
         const secondOscillator = context.createOscillator();
         const secondGain = context.createGain();
 
-        secondOscillator.type = soundSettings.soundType === "bright" ? "triangle" : "sine";
+        secondOscillator.type =
+          soundSettings.soundType === "bright" ? "triangle" : "sine";
         secondOscillator.frequency.setValueAtTime(1318, now + 0.12);
 
         secondGain.gain.setValueAtTime(0.0001, now + 0.12);
@@ -318,7 +356,6 @@ export default function DriverConsolePage() {
   }
 
   // ===== PASSENGER REQUEST LISTENER =====
-  // Keeps the driver console synced with Firestore passenger requests.
   useEffect(() => {
     const unsubscribe = listenToPassengerRequests((liveRequests) => {
       setRequests(liveRequests);
@@ -330,7 +367,6 @@ export default function DriverConsolePage() {
   }, []);
 
   // ===== RIDE SESSION LISTENER =====
-  // Tracks passenger tablet page/status metadata for the driver.
   useEffect(() => {
     const unsubscribe = listenToRideSession((session) => {
       setRideSession(session || {});
@@ -357,7 +393,6 @@ export default function DriverConsolePage() {
   }, [rideSession.latestConsoleNotification]);
 
   // ===== VISIBLE REQUEST FILTERING =====
-  // Cleared requests stay in Firestore history but disappear from the active console.
   const visibleRequests = useMemo(
     () => requests.filter((request) => request.status !== "cleared"),
     [requests]
@@ -366,6 +401,10 @@ export default function DriverConsolePage() {
   const pendingCount = visibleRequests.filter(
     (request) => request.status === "pending"
   ).length;
+
+  const activeSection = CONSOLE_SECTIONS.find(
+    (section) => section.id === consoleSection
+  );
 
   // ===== DRIVER → PASSENGER MESSAGE =====
   async function sendDriverMessage(template) {
@@ -380,7 +419,24 @@ export default function DriverConsolePage() {
     }
   }
 
-  // ===== ACKNOWLEDGE REQUEST =====
+  async function sendCustomDriverMessage() {
+    const trimmedMessage = customDriverMessage.trim();
+
+    if (!trimmedMessage) {
+      setDriverMessageStatus("Type a message before sending.");
+      return;
+    }
+
+    await sendDriverMessage({
+      key: "driver_custom",
+      english: trimmedMessage,
+      translations: {},
+    });
+
+    setCustomDriverMessage("");
+  }
+
+  // ===== REQUEST ACTIONS =====
   async function acknowledgeRequest(id) {
     try {
       await updatePassengerRequestStatus(id, "acknowledged");
@@ -390,7 +446,6 @@ export default function DriverConsolePage() {
     }
   }
 
-  // ===== CLEAR SINGLE REQUEST =====
   async function clearRequest(id) {
     try {
       await updatePassengerRequestStatus(id, "cleared");
@@ -400,7 +455,6 @@ export default function DriverConsolePage() {
     }
   }
 
-  // ===== CLEAR ALL VISIBLE REQUESTS =====
   async function clearAll() {
     try {
       await Promise.all(
@@ -414,383 +468,494 @@ export default function DriverConsolePage() {
     }
   }
 
-  return (
-    <main className="min-h-screen bg-slate-950 p-3 text-white sm:p-4">
-      <div className="mx-auto max-w-md">
-        {/* ===== CONSOLE HEADER / LIVE COUNTS ===== */}
-        <header className="mb-4 rounded-3xl bg-white/10 p-4 backdrop-blur">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="text-xs font-bold uppercase tracking-[.2em] text-white/50">
-                Driver Console
+  function selectConsoleSection(sectionId) {
+    setConsoleSection(sectionId);
+    setMenuOpen(false);
+  }
+
+  function renderConsoleMenu() {
+    return (
+      <div className="absolute right-0 top-14 z-30 w-72 rounded-3xl border border-white/10 bg-slate-900 p-2 shadow-2xl">
+        {CONSOLE_SECTIONS.map((section) => {
+          const Icon = section.icon;
+          const active = consoleSection === section.id;
+
+          return (
+            <button
+              key={section.id}
+              type="button"
+              onClick={() => selectConsoleSection(section.id)}
+              className={`flex w-full items-center gap-3 rounded-2xl p-3 text-left ${
+                active ? "bg-white text-slate-950" : "text-white hover:bg-white/10"
+              }`}
+            >
+              <Icon size={20} />
+              <div>
+                <div className="text-sm font-black">{section.label}</div>
+                <div className={`text-xs ${active ? "text-slate-500" : "text-white/45"}`}>
+                  {section.description}
+                </div>
               </div>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
 
-              <h1 className="mt-1 text-2xl font-black leading-tight">
-                Ride Companion
-              </h1>
-
-              <p className="mt-1 text-sm text-white/60">
-                Live passenger request console.
-              </p>
+  function renderHeader() {
+    return (
+      <header className="mb-4 rounded-3xl bg-white/10 p-4 backdrop-blur">
+        <div className="relative flex items-start justify-between gap-3">
+          <div>
+            <div className="text-xs font-bold uppercase tracking-[.2em] text-white/50">
+              Driver Console
             </div>
 
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={soundEnabled ? disableSound : initializeSound}
-                className={`rounded-2xl p-3 ${
+            <h1 className="mt-1 text-2xl font-black leading-tight">
+              {activeSection?.label || "Ride Companion"}
+            </h1>
+
+            <p className="mt-1 text-sm text-white/60">
+              {activeSection?.description || "Live passenger console."}
+            </p>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={soundEnabled ? disableSound : initializeSound}
+              className={`rounded-2xl p-3 ${
+                soundEnabled
+                  ? "bg-emerald-300 text-emerald-950"
+                  : "bg-white/10 text-white/50"
+              }`}
+              title={soundEnabled ? "Notification sound enabled" : "Enable notification sound"}
+            >
+              {soundEnabled ? <Volume2 /> : <VolumeX />}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setMenuOpen((open) => !open)}
+              className="rounded-2xl bg-white/10 p-3 text-white hover:bg-white/20"
+              title="Console menu"
+            >
+              {menuOpen ? <X /> : <Menu />}
+            </button>
+
+            {menuOpen && renderConsoleMenu()}
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          <div className="rounded-2xl bg-white/10 p-3 text-center">
+            <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">
+              Pending
+            </div>
+            <div className="text-2xl font-black">{pendingCount}</div>
+          </div>
+
+          <div className="rounded-2xl bg-white/10 p-3 text-center">
+            <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">
+              Visible
+            </div>
+            <div className="text-2xl font-black">{visibleRequests.length}</div>
+          </div>
+
+          <div className="rounded-2xl bg-white/10 p-3 text-center">
+            <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">
+              Sync
+            </div>
+            <div className="text-sm font-black text-emerald-300">Live</div>
+          </div>
+        </div>
+
+        <div className="mt-3 grid gap-2">
+          <div className="rounded-2xl bg-white/10 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="rounded-xl bg-white/10 p-2">
+                  <Monitor size={18} className="text-cyan-200" />
+                </div>
+
+                <div className="min-w-0">
+                  <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">
+                    Tablet Page
+                  </div>
+
+                  <div className="truncate text-lg font-black text-cyan-200">
+                    {rideSession.passengerPageLabel || "Waiting for tablet"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="shrink-0 text-right text-[10px] font-bold uppercase tracking-wide text-white/40">
+                {formatPageUpdatedTime(rideSession.passengerPageUpdatedAt)}
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl bg-white/10 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">
+                  Latest Alert
+                </div>
+
+                <div className="truncate text-sm font-black text-white/80">
+                  {rideSession.latestConsoleNotification?.label || "No alerts yet"}
+                </div>
+
+                {rideSession.latestConsoleNotification?.message && (
+                  <div className="truncate text-xs text-white/45">
+                    {rideSession.latestConsoleNotification.message}
+                  </div>
+                )}
+              </div>
+
+              <div
+                className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wide ${
                   soundEnabled
                     ? "bg-emerald-300 text-emerald-950"
                     : "bg-white/10 text-white/50"
                 }`}
-                title={soundEnabled ? "Notification sound enabled" : "Enable notification sound"}
               >
-                {soundEnabled ? <Volume2 /> : <VolumeX />}
-              </button>
-
-              <div className="rounded-2xl bg-white/10 p-3">
-                <Bell
-                  className={pendingCount > 0 ? "text-amber-300" : "text-white/40"}
-                />
+                {soundEnabled ? "Sound On" : "Tap Sound"}
               </div>
             </div>
           </div>
+        </div>
+      </header>
+    );
+  }
 
-          <div className="mt-4 grid grid-cols-3 gap-2">
-            <div className="rounded-2xl bg-white/10 p-3 text-center">
-              <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">
-                Pending
-              </div>
-
-              <div className="text-2xl font-black">{pendingCount}</div>
-            </div>
-
-            <div className="rounded-2xl bg-white/10 p-3 text-center">
-              <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">
-                Visible
-              </div>
-
-              <div className="text-2xl font-black">
-                {visibleRequests.length}
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-white/10 p-3 text-center">
-              <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">
-                Sync
-              </div>
-
-              <div className="text-sm font-black text-emerald-300">
-                Live
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-3 grid gap-2">
-            <div className="rounded-2xl bg-white/10 p-3">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="rounded-xl bg-white/10 p-2">
-                    <Monitor size={18} className="text-cyan-200" />
-                  </div>
-
-                  <div className="min-w-0">
-                    <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">
-                      Tablet Page
-                    </div>
-
-                    <div className="truncate text-lg font-black text-cyan-200">
-                      {rideSession.passengerPageLabel || "Waiting for tablet"}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="shrink-0 text-right text-[10px] font-bold uppercase tracking-wide text-white/40">
-                  {formatPageUpdatedTime(rideSession.passengerPageUpdatedAt)}
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-white/10 p-3">
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">
-                    Latest Alert
-                  </div>
-
-                  <div className="truncate text-sm font-black text-white/80">
-                    {rideSession.latestConsoleNotification?.label || "No alerts yet"}
-                  </div>
-
-                  {rideSession.latestConsoleNotification?.message && (
-                    <div className="truncate text-xs text-white/45">
-                      {rideSession.latestConsoleNotification.message}
-                    </div>
-                  )}
-                </div>
-
-                <div className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wide ${
-                  soundEnabled ? "bg-emerald-300 text-emerald-950" : "bg-white/10 text-white/50"
-                }`}>
-                  {soundEnabled ? "Sound On" : "Tap Sound"}
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* ===== CONSOLE NOTIFICATION SOUND SETTINGS ===== */}
-        <section className="mb-4 rounded-3xl bg-white/10 p-4 backdrop-blur">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-lg font-black">Notification Sounds</h2>
-              <p className="text-sm text-white/50">
-                Configure sounds for this console device.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={testNotificationSound}
-              className="rounded-xl bg-cyan-300 px-3 py-2 text-sm font-black text-cyan-950 shadow-lg"
-            >
-              Test Sound
-            </button>
-          </div>
-
-          <div className="mt-3 grid gap-3">
-            <div className="grid gap-2 sm:grid-cols-2">
-              <label className="grid gap-1 text-sm font-bold text-white/70">
-                Sound style
-                <select
-                  value={soundSettings.soundType}
-                  onChange={(event) =>
-                    updateSoundSetting("soundType", event.target.value)
-                  }
-                  className="rounded-2xl border border-white/10 bg-slate-950 p-3 text-white outline-none"
-                >
-                  <option value="soft">Soft</option>
-                  <option value="bright">Bright</option>
-                  <option value="subtle">Subtle</option>
-                </select>
-              </label>
-
-              <label className="grid gap-1 text-sm font-bold text-white/70">
-                Volume: {Math.round((soundSettings.volume || 0) * 100)}%
-                <input
-                  type="range"
-                  min="0.1"
-                  max="1"
-                  step="0.05"
-                  value={soundSettings.volume}
-                  onChange={(event) =>
-                    updateSoundSetting("volume", Number(event.target.value))
-                  }
-                  className="h-10"
-                />
-              </label>
-            </div>
-
-            <div className="grid gap-2 sm:grid-cols-3">
-              {[
-                ["requestEnabled", "Requests"],
-                ["guestbookEnabled", "Guestbook"],
-                ["tipEnabled", "Tip links"],
-              ].map(([field, label]) => (
-                <label
-                  key={field}
-                  className="flex items-center justify-between gap-3 rounded-2xl bg-white/5 p-3 text-sm font-black"
-                >
-                  <span>{label}</span>
-                  <input
-                    type="checkbox"
-                    checked={Boolean(soundSettings[field])}
-                    onChange={(event) =>
-                      updateSoundSetting(field, event.target.checked)
-                    }
-                    className="h-5 w-5"
-                  />
-                </label>
-              ))}
-            </div>
-
-            <div className="rounded-2xl bg-white/5 p-3 text-xs font-bold text-white/45">
-              Tip alerts mean the passenger opened a tip link. External payment completion cannot be verified from here.
-            </div>
-          </div>
-        </section>
-
-        {/* ===== PASSENGER REQUEST PANEL ===== */}
-        <section className="rounded-3xl bg-white/10 p-4 backdrop-blur">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-xl font-black">Passenger Requests</h2>
-
-              <p className="text-sm text-white/50">
-                Requests from the passenger tablet appear here.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={clearAll}
-              disabled={visibleRequests.length === 0}
-              className="rounded-xl bg-rose-400 px-3 py-2 text-sm font-black text-rose-950 shadow-lg disabled:opacity-40"
-            >
-              Clear
-            </button>
-          </div>
-
-          {consoleError && (
-            <div className="mb-3 rounded-2xl bg-rose-300 p-3 text-sm font-black text-rose-950">
-              {consoleError}
-            </div>
-          )}
-
-          {/* ===== REQUEST LIST ===== */}
-          <div className="grid gap-3">
-            {loading ? (
-              <div className="rounded-2xl bg-white/5 p-8 text-center text-white/50">
-                Loading requests...
-              </div>
-            ) : visibleRequests.length === 0 ? (
-              <div className="rounded-2xl bg-white/5 p-8 text-center text-white/50">
-                No active requests.
-              </div>
-            ) : (
-              visibleRequests.map((request) => (
-                <div key={request.id} className="rounded-2xl bg-white/5 p-4">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-white/60">
-                      {request.category || request.type || "Request"}
-                    </div>
-
-                    <div
-                      className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wide ${
-                        request.status === "pending"
-                          ? "bg-amber-300 text-amber-950"
-                          : "bg-emerald-300 text-emerald-950"
-                      }`}
-                    >
-                      {request.status || "pending"}
-                    </div>
-                  </div>
-
-                  <div className="mt-3 text-xl font-black leading-tight">
-                    {request.message || "Passenger request"}
-                  </div>
-
-                  <div className="mt-2 flex items-center gap-2 text-sm text-white/50">
-                    <Clock3 size={15} />
-                    {formatRequestTime(request.createdAt)}
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => acknowledgeRequest(request.id)}
-                      disabled={request.status === "acknowledged"}
-                      className="flex items-center justify-center gap-2 rounded-2xl bg-emerald-300 px-3 py-3 text-sm font-black text-emerald-950 shadow-lg disabled:opacity-40"
-                    >
-                      <CheckCircle2 size={17} />
-                      Ack
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => clearRequest(request.id)}
-                      className="flex items-center justify-center gap-2 rounded-2xl bg-white/10 px-3 py-3 text-sm font-black text-white hover:bg-white/20"
-                    >
-                      <Trash2 size={17} />
-                      Clear
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
-
-        {/* ===== DRIVER TRANSLATION STATUS / LANGUAGE SYNC ===== */}
-        <DriverTranslationCard />
-
-        {/* ===== DRIVER → PASSENGER TRANSLATED MESSAGES ===== */}
-        <section className="mt-4 rounded-3xl bg-white/10 p-4 backdrop-blur">
+  function renderRequestsPanel() {
+    return (
+      <section className="rounded-3xl bg-white/10 p-4 backdrop-blur">
+        <div className="mb-4 flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-xl font-black">Driver Messages</h2>
+            <h2 className="text-xl font-black">Passenger Requests</h2>
             <p className="text-sm text-white/50">
-              Send a translated popup to the passenger tablet with an acknowledgment button.
+              Requests from the passenger tablet appear here.
             </p>
           </div>
 
-          <div className="mt-4 grid gap-2">
-            {DRIVER_MESSAGE_TEMPLATES.map((template) => (
-              <button
-                key={template.key}
-                type="button"
-                onClick={() => sendDriverMessage(template)}
-                className="rounded-2xl bg-white/10 p-3 text-left text-sm font-black text-white hover:bg-white/20"
+          <button
+            type="button"
+            onClick={clearAll}
+            disabled={visibleRequests.length === 0}
+            className="rounded-xl bg-rose-400 px-3 py-2 text-sm font-black text-rose-950 shadow-lg disabled:opacity-40"
+          >
+            Clear
+          </button>
+        </div>
+
+        {consoleError && (
+          <div className="mb-3 rounded-2xl bg-rose-300 p-3 text-sm font-black text-rose-950">
+            {consoleError}
+          </div>
+        )}
+
+        <div className="grid gap-3">
+          {loading ? (
+            <div className="rounded-2xl bg-white/5 p-8 text-center text-white/50">
+              Loading requests...
+            </div>
+          ) : visibleRequests.length === 0 ? (
+            <div className="rounded-2xl bg-white/5 p-8 text-center text-white/50">
+              No active requests.
+            </div>
+          ) : (
+            visibleRequests.map((request) => (
+              <div key={request.id} className="rounded-2xl bg-white/5 p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-white/60">
+                    {request.category || request.type || "Request"}
+                  </div>
+
+                  <div
+                    className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wide ${
+                      request.status === "pending"
+                        ? "bg-amber-300 text-amber-950"
+                        : "bg-emerald-300 text-emerald-950"
+                    }`}
+                  >
+                    {request.status || "pending"}
+                  </div>
+                </div>
+
+                <div className="mt-3 text-xl font-black leading-tight">
+                  {request.message || "Passenger request"}
+                </div>
+
+                <div className="mt-2 flex items-center gap-2 text-sm text-white/50">
+                  <Clock3 size={15} />
+                  {formatRequestTime(request.createdAt)}
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => acknowledgeRequest(request.id)}
+                    disabled={request.status === "acknowledged"}
+                    className="flex items-center justify-center gap-2 rounded-2xl bg-emerald-300 px-3 py-3 text-sm font-black text-emerald-950 shadow-lg disabled:opacity-40"
+                  >
+                    <CheckCircle2 size={17} />
+                    Ack
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => clearRequest(request.id)}
+                    className="flex items-center justify-center gap-2 rounded-2xl bg-white/10 px-3 py-3 text-sm font-black text-white hover:bg-white/20"
+                  >
+                    <Trash2 size={17} />
+                    Clear
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
+    );
+  }
+
+  function renderDriverMessagesPanel() {
+    return (
+      <section className="mt-4 rounded-3xl bg-white/10 p-4 backdrop-blur">
+        <div>
+          <h2 className="text-xl font-black">Driver Messages</h2>
+          <p className="text-sm text-white/50">
+            Send a popup to the passenger tablet. Preset messages are translated; custom messages are sent as typed.
+          </p>
+        </div>
+
+        <div className="mt-4 grid gap-2">
+          {DRIVER_MESSAGE_TEMPLATES.map((template) => (
+            <button
+              key={template.key}
+              type="button"
+              onClick={() => sendDriverMessage(template)}
+              className="rounded-2xl bg-white/10 p-3 text-left text-sm font-black text-white hover:bg-white/20"
+            >
+              {template.english}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-4 rounded-2xl bg-white/5 p-3">
+          <label className="text-xs font-black uppercase tracking-wide text-white/50">
+            Type message to passenger
+          </label>
+
+          <textarea
+            value={customDriverMessage}
+            onChange={(event) => setCustomDriverMessage(event.target.value)}
+            placeholder="Type a short message..."
+            rows={3}
+            className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950 p-3 text-sm font-bold text-white outline-none placeholder:text-white/30"
+          />
+
+          <button
+            type="button"
+            onClick={sendCustomDriverMessage}
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-300 px-4 py-3 text-sm font-black text-cyan-950"
+          >
+            <Send size={16} />
+            Send Typed Message
+          </button>
+
+          <div className="mt-2 text-xs font-bold text-white/40">
+            Typed messages are not machine-translated yet. The passenger receives the exact text you send.
+          </div>
+        </div>
+
+        {driverMessageStatus && (
+          <div className="mt-3 rounded-2xl bg-white/5 p-3 text-sm font-bold text-white/60">
+            {driverMessageStatus}
+          </div>
+        )}
+
+        {rideSession.latestDriverMessage?.id && (
+          <div className="mt-3 rounded-2xl bg-white/5 p-3 text-xs font-bold text-white/45">
+            Latest passenger message:{" "}
+            <span className="text-white/70">
+              {rideSession.latestDriverMessage.acknowledged
+                ? "Acknowledged"
+                : "Waiting for passenger acknowledgment"}
+            </span>
+          </div>
+        )}
+      </section>
+    );
+  }
+
+  function renderCommunicationSection() {
+    return (
+      <>
+        {renderRequestsPanel()}
+
+        <div className="mt-4">
+          <DriverTranslationCard />
+        </div>
+
+        {renderDriverMessagesPanel()}
+      </>
+    );
+  }
+
+  function renderSoundSettingsPanel() {
+    return (
+      <section className="rounded-3xl bg-white/10 p-4 backdrop-blur">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-lg font-black">Notification Sounds</h2>
+            <p className="text-sm text-white/50">
+              Configure sounds for this console device.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={testNotificationSound}
+            className="rounded-xl bg-cyan-300 px-3 py-2 text-sm font-black text-cyan-950 shadow-lg"
+          >
+            Test Sound
+          </button>
+        </div>
+
+        <div className="mt-3 grid gap-3">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <label className="grid gap-1 text-sm font-bold text-white/70">
+              Sound style
+              <select
+                value={soundSettings.soundType}
+                onChange={(event) =>
+                  updateSoundSetting("soundType", event.target.value)
+                }
+                className="rounded-2xl border border-white/10 bg-slate-950 p-3 text-white outline-none"
               >
-                {template.english}
-              </button>
+                <option value="soft">Soft</option>
+                <option value="bright">Bright</option>
+                <option value="subtle">Subtle</option>
+              </select>
+            </label>
+
+            <label className="grid gap-1 text-sm font-bold text-white/70">
+              Volume: {Math.round((soundSettings.volume || 0) * 100)}%
+              <input
+                type="range"
+                min="0.1"
+                max="1"
+                step="0.05"
+                value={soundSettings.volume}
+                onChange={(event) =>
+                  updateSoundSetting("volume", Number(event.target.value))
+                }
+                className="h-10"
+              />
+            </label>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-3">
+            {[
+              ["requestEnabled", "Requests"],
+              ["guestbookEnabled", "Guestbook"],
+              ["tipEnabled", "Tip links"],
+            ].map(([field, label]) => (
+              <label
+                key={field}
+                className="flex items-center justify-between gap-3 rounded-2xl bg-white/5 p-3 text-sm font-black"
+              >
+                <span>{label}</span>
+                <input
+                  type="checkbox"
+                  checked={Boolean(soundSettings[field])}
+                  onChange={(event) =>
+                    updateSoundSetting(field, event.target.checked)
+                  }
+                  className="h-5 w-5"
+                />
+              </label>
             ))}
           </div>
 
-          {driverMessageStatus && (
-            <div className="mt-3 rounded-2xl bg-white/5 p-3 text-sm font-bold text-white/60">
-              {driverMessageStatus}
-            </div>
-          )}
+          <div className="rounded-2xl bg-white/5 p-3 text-xs font-bold text-white/45">
+            Tip alerts mean the passenger opened a tip link. External payment completion cannot be verified from here.
+          </div>
+        </div>
+      </section>
+    );
+  }
 
-          {rideSession.latestDriverMessage?.id && (
-            <div className="mt-3 rounded-2xl bg-white/5 p-3 text-xs font-bold text-white/45">
-              Latest passenger message:{" "}
-              <span className="text-white/70">
-                {rideSession.latestDriverMessage.acknowledged
-                  ? "Acknowledged"
-                  : "Waiting for passenger acknowledgment"}
-              </span>
-            </div>
-          )}
-        </section>
-
-        {/* ===== DRIVER / SYSTEM STATUS PANEL ===== */}
-        <section className="mt-4 rounded-3xl bg-white/10 p-4 backdrop-blur">
-          <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-white/10 p-3">
-              <User />
-            </div>
-
-            <div>
-              <div className="text-xs font-bold uppercase tracking-wide text-white/50">
-                Driver
-              </div>
-
-              <div className="text-xl font-black">Aaron</div>
-            </div>
+  function renderSystemStatusPanel() {
+    return (
+      <section className="mt-4 rounded-3xl bg-white/10 p-4 backdrop-blur">
+        <div className="flex items-center gap-3">
+          <div className="rounded-2xl bg-white/10 p-3">
+            <User />
           </div>
 
-          <div className="mt-4 grid gap-2 text-sm">
-            <div className="flex items-center justify-between gap-3 rounded-2xl bg-white/5 p-3">
-              <span>Passenger Tablet</span>
-              <span className="min-w-0 truncate text-right font-black text-emerald-300">
-                {rideSession.passengerPageLabel || "Connected"}
-              </span>
+          <div>
+            <div className="text-xs font-bold uppercase tracking-wide text-white/50">
+              Driver
             </div>
 
-            <div className="flex items-center justify-between rounded-2xl bg-white/5 p-3">
-              <span>Realtime Sync</span>
-              <span className="font-black text-emerald-300">Firestore</span>
-            </div>
-
-            <div className="flex items-center justify-between rounded-2xl bg-white/5 p-3">
-              <span>Notifications</span>
-              <span className={`font-black ${soundEnabled ? "text-emerald-300" : "text-white/60"}`}>
-                {soundEnabled ? `${soundSettings.soundType} / ${Math.round((soundSettings.volume || 0) * 100)}%` : "Tap speaker"}
-              </span>
-            </div>
+            <div className="text-xl font-black">Aaron</div>
           </div>
-        </section>
+        </div>
+
+        <div className="mt-4 grid gap-2 text-sm">
+          <div className="flex items-center justify-between gap-3 rounded-2xl bg-white/5 p-3">
+            <span>Passenger Tablet</span>
+            <span className="min-w-0 truncate text-right font-black text-emerald-300">
+              {rideSession.passengerPageLabel || "Connected"}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between rounded-2xl bg-white/5 p-3">
+            <span>Realtime Sync</span>
+            <span className="font-black text-emerald-300">Firestore</span>
+          </div>
+
+          <div className="flex items-center justify-between rounded-2xl bg-white/5 p-3">
+            <span>Notifications</span>
+            <span
+              className={`font-black ${
+                soundEnabled ? "text-emerald-300" : "text-white/60"
+              }`}
+            >
+              {soundEnabled
+                ? `${soundSettings.soundType} / ${Math.round(
+                    (soundSettings.volume || 0) * 100
+                  )}%`
+                : "Tap speaker"}
+            </span>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  function renderSettingsSection() {
+    return (
+      <>
+        {renderSoundSettingsPanel()}
+        {renderSystemStatusPanel()}
+      </>
+    );
+  }
+
+  return (
+    <main className="min-h-screen bg-slate-950 p-3 text-white sm:p-4">
+      <div className="mx-auto max-w-md">
+        {renderHeader()}
+
+        {consoleSection === "communication"
+          ? renderCommunicationSection()
+          : renderSettingsSection()}
       </div>
     </main>
   );
