@@ -44,6 +44,7 @@ const TRANSLATION_UI_TEXT = {
   typeIn: "Type in",
   translateToEnglish: "Translate to English",
   translating: "Translating...",
+  translatingBeforeSend: "Translating before sending...",
   sendToDriver: "Send to Driver",
   sending: "Sending...",
   englishResult: "English message appears here.",
@@ -65,6 +66,7 @@ export default function TranslationPage({
   const [selectedLanguage, setSelectedLanguage] = useState(appLanguage || "en");
   const [passengerText, setPassengerText] = useState("");
   const [englishResult, setEnglishResult] = useState("");
+  const [lastTranslatedPassengerText, setLastTranslatedPassengerText] = useState("");
   const [syncError, setSyncError] = useState("");
   const [sendStatus, setSendStatus] = useState("");
   const [translating, setTranslating] = useState(false);
@@ -164,27 +166,26 @@ export default function TranslationPage({
     applyLanguage("en");
     setPassengerText("");
     setEnglishResult("");
+    setLastTranslatedPassengerText("");
     setSendStatus("");
   }
 
   // ===== PASSENGER TEXT TO ENGLISH =====
-  async function translateToEnglish() {
+  async function translatePassengerTextToEnglish({ showError = true } = {}) {
     const trimmedText = passengerText.trim();
 
     if (!trimmedText) {
       setEnglishResult("");
+      setLastTranslatedPassengerText("");
       setSendStatus("");
-      return;
+      return "";
     }
 
     if (selectedLanguage === "en") {
       setEnglishResult(trimmedText);
-      return;
+      setLastTranslatedPassengerText(trimmedText);
+      return trimmedText;
     }
-
-    setTranslating(true);
-    setSyncError("");
-    setSendStatus("");
 
     try {
       const translation = await translateDriverMessage({
@@ -193,16 +194,38 @@ export default function TranslationPage({
         targetLanguage: "en",
       });
 
-      setEnglishResult(translation?.translatedText || trimmedText);
+      const translatedText = translation?.translatedText || trimmedText;
+
+      setEnglishResult(translatedText);
+      setLastTranslatedPassengerText(trimmedText);
+
+      return translatedText;
     } catch (error) {
       console.error("Passenger-to-English translation failed:", error);
+
       setEnglishResult(trimmedText);
-      setSyncError(
-        tr(
-          "translate_api_failed",
-          TRANSLATION_UI_TEXT.apiFailed
-        )
-      );
+      setLastTranslatedPassengerText(trimmedText);
+
+      if (showError) {
+        setSyncError(
+          tr(
+            "translate_api_failed",
+            TRANSLATION_UI_TEXT.apiFailed
+          )
+        );
+      }
+
+      return trimmedText;
+    }
+  }
+
+  async function translateToEnglish() {
+    setTranslating(true);
+    setSyncError("");
+    setSendStatus("");
+
+    try {
+      await translatePassengerTextToEnglish({ showError: true });
     } finally {
       setTranslating(false);
     }
@@ -211,11 +234,10 @@ export default function TranslationPage({
   // ===== SEND TRANSLATED MESSAGE TO DRIVER CONSOLE =====
   async function sendTranslatedMessageToDriver() {
     const originalText = passengerText.trim();
-    const englishText = englishResult.trim() || originalText;
 
     setSendStatus("");
 
-    if (!originalText || !englishText) {
+    if (!originalText) {
       setSendStatus(uiText("sendEmpty"));
       return;
     }
@@ -223,10 +245,21 @@ export default function TranslationPage({
     setSendingToDriver(true);
 
     try {
+      let englishText = englishResult.trim();
+
+      // If the passenger changed the text after translating, or if they tap
+      // Send to Driver without tapping Translate first, translate automatically.
+      if (!englishText || lastTranslatedPassengerText !== originalText) {
+        setSendStatus(uiText("translatingBeforeSend"));
+        englishText = await translatePassengerTextToEnglish({ showError: false });
+      }
+
+      const finalEnglishText = englishText || originalText;
+
       await sendPassengerRequest({
         category: "Translation",
         type: "translation",
-        message: englishText,
+        message: finalEnglishText,
         originalMessage: originalText,
         originalLanguage: selectedLanguage,
         originalLanguageLabel: selectedLanguageLabel,
@@ -235,12 +268,13 @@ export default function TranslationPage({
       await sendConsoleNotification({
         type: "request",
         label: "Passenger Translation",
-        message: englishText,
+        message: finalEnglishText,
       });
 
       setSendStatus(uiText("sendSuccess"));
       setPassengerText("");
       setEnglishResult("");
+      setLastTranslatedPassengerText("");
     } catch (error) {
       console.error("Failed to send translated message to driver:", error);
       setSendStatus(uiText("sendError"));
@@ -348,7 +382,10 @@ export default function TranslationPage({
 
             <textarea
               value={passengerText}
-              onChange={(event) => setPassengerText(event.target.value)}
+              onChange={(event) => {
+                setPassengerText(event.target.value);
+                setSendStatus("");
+              }}
               placeholder={`${uiText("typeIn")} ${selectedLanguageLabel}...`}
               rows={6}
               lang={selectedInputLang}
