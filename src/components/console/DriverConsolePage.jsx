@@ -21,6 +21,7 @@ import {
   updatePassengerRequestStatus,
 } from "../../services/rideSessionService.js";
 import DriverTranslationCard from "./DriverTranslationCard.jsx";
+import { translateDriverMessage } from "../../services/dynamicTranslationApiService.js";
 
 // ===== REQUEST TIME DISPLAY =====
 // Converts Firestore timestamps into compact driver-console time labels.
@@ -186,6 +187,127 @@ const DRIVER_MESSAGE_TEMPLATES = [
   },
 ];
 
+
+const DRIVER_QUICK_TRANSLATION_TEMPLATES = [
+  {
+    key: "driver_confirm_destination",
+    english: "Please confirm the destination.",
+    translations: {
+      es: "Por favor confirme el destino.",
+      fr: "Veuillez confirmer la destination.",
+      de: "Bitte bestätigen Sie das Ziel.",
+      pt: "Por favor, confirme o destino.",
+      zh: "请确认目的地。",
+      ar: "يرجى تأكيد الوجهة.",
+      vi: "Vui lòng xác nhận điểm đến.",
+      ko: "목적지를 확인해 주세요.",
+      ja: "目的地を確認してください。",
+      hi: "कृपया गंतव्य की पुष्टि करें।",
+    },
+  },
+  {
+    key: "driver_seatbelt",
+    english: "Please wear your seatbelt.",
+    translations: {
+      es: "Por favor use el cinturón de seguridad.",
+      fr: "Veuillez attacher votre ceinture.",
+      de: "Bitte legen Sie den Sicherheitsgurt an.",
+      pt: "Por favor, use o cinto de segurança.",
+      zh: "请系好安全带。",
+      ar: "يرجى ربط حزام الأمان.",
+      vi: "Vui lòng thắt dây an toàn.",
+      ko: "안전벨트를 착용해 주세요.",
+      ja: "シートベルトを締めてください。",
+      hi: "कृपया सीटबेल्ट लगाएँ।",
+    },
+  },
+  {
+    key: "driver_arrived",
+    english: "We have arrived.",
+    translations: {
+      es: "Hemos llegado.",
+      fr: "Nous sommes arrivés.",
+      de: "Wir sind angekommen.",
+      pt: "Chegamos.",
+      zh: "我们到了。",
+      ar: "لقد وصلنا.",
+      vi: "Chúng ta đã đến nơi.",
+      ko: "도착했습니다.",
+      ja: "到着しました。",
+      hi: "हम पहुँच गए हैं।",
+    },
+  },
+  {
+    key: "driver_temperature",
+    english: "Do you need the temperature changed?",
+    translations: {
+      es: "¿Necesita que cambie la temperatura?",
+      fr: "Voulez-vous changer la température ?",
+      de: "Möchten Sie die Temperatur ändern?",
+      pt: "Você quer mudar a temperatura?",
+      zh: "您需要调节温度吗？",
+      ar: "هل تريد تغيير درجة الحرارة؟",
+      vi: "Bạn có cần chỉnh nhiệt độ không?",
+      ko: "온도를 조절해 드릴까요?",
+      ja: "温度を変えましょうか？",
+      hi: "क्या आपको तापमान बदलवाना है?",
+    },
+  },
+  {
+    key: "driver_quiet_ride",
+    english: "Do you need a quiet ride?",
+    translations: {
+      es: "¿Prefiere un viaje tranquilo?",
+      fr: "Préférez-vous un trajet calme ?",
+      de: "Möchten Sie eine ruhige Fahrt?",
+      pt: "Você prefere uma viagem tranquila?",
+      zh: "您需要安静的行程吗？",
+      ar: "هل تريد رحلة هادئة؟",
+      vi: "Bạn có muốn chuyến đi yên tĩnh không?",
+      ko: "조용한 운행을 원하시나요?",
+      ja: "静かな乗車をご希望ですか？",
+      hi: "क्या आप शांत यात्रा चाहते हैं?",
+    },
+  },
+  {
+    key: "driver_quick_stop",
+    english: "Do you need a quick stop?",
+    translations: {
+      es: "¿Necesita una parada rápida?",
+      fr: "Avez-vous besoin d’un arrêt rapide ?",
+      de: "Brauchen Sie einen kurzen Stopp?",
+      pt: "Você precisa de uma parada rápida?",
+      zh: "您需要短暂停靠吗？",
+      ar: "هل تحتاج إلى توقف سريع؟",
+      vi: "Bạn có cần dừng nhanh không?",
+      ko: "잠깐 정차가 필요하신가요?",
+      ja: "少し停車が必要ですか？",
+      hi: "क्या आपको एक छोटी रुकावट चाहिए?",
+    },
+  },
+  {
+    key: "driver_translator_notice",
+    english: "I do not speak this language, but I can use this translator.",
+    translations: {
+      es: "No hablo este idioma, pero puedo usar este traductor.",
+      fr: "Je ne parle pas cette langue, mais je peux utiliser ce traducteur.",
+      de: "Ich spreche diese Sprache nicht, aber ich kann diesen Übersetzer benutzen.",
+      pt: "Eu não falo este idioma, mas posso usar este tradutor.",
+      zh: "我不会说这种语言，但我可以使用这个翻译器。",
+      ar: "أنا لا أتحدث هذه اللغة، لكن يمكنني استخدام هذا المترجم.",
+      vi: "Tôi không nói ngôn ngữ này, nhưng tôi có thể dùng trình dịch này.",
+      ko: "저는 이 언어를 말하지 못하지만 번역기를 사용할 수 있습니다.",
+      ja: "この言語は話せませんが、この翻訳機を使えます。",
+      hi: "मैं यह भाषा नहीं बोलता, लेकिन इस अनुवादक का उपयोग कर सकता हूँ।",
+    },
+  },
+];
+
+const ALL_DRIVER_MESSAGE_TEMPLATES = [
+  ...DRIVER_MESSAGE_TEMPLATES,
+  ...DRIVER_QUICK_TRANSLATION_TEMPLATES,
+];
+
 const CONSOLE_SECTIONS = [
   {
     id: "communication",
@@ -208,6 +330,7 @@ export default function DriverConsolePage() {
   const [consoleError, setConsoleError] = useState("");
   const [driverMessageStatus, setDriverMessageStatus] = useState("");
   const [customDriverMessage, setCustomDriverMessage] = useState("");
+  const [customMessageTranslating, setCustomMessageTranslating] = useState(false);
   const [rideSession, setRideSession] = useState({});
   const [consoleSection, setConsoleSection] = useState("communication");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -421,19 +544,57 @@ export default function DriverConsolePage() {
 
   async function sendCustomDriverMessage() {
     const trimmedMessage = customDriverMessage.trim();
+    const passengerLanguage = rideSession.passengerLanguage || "en";
 
     if (!trimmedMessage) {
       setDriverMessageStatus("Type a message before sending.");
       return;
     }
 
-    await sendDriverMessage({
-      key: "driver_custom",
-      english: trimmedMessage,
-      translations: {},
-    });
+    setCustomMessageTranslating(true);
+    setDriverMessageStatus(
+      passengerLanguage === "en"
+        ? "Sending typed message..."
+        : `Translating typed message to ${passengerLanguage}...`
+    );
 
-    setCustomDriverMessage("");
+    try {
+      let translations = {};
+
+      if (passengerLanguage !== "en") {
+        const translation = await translateDriverMessage({
+          text: trimmedMessage,
+          targetLanguage: passengerLanguage,
+          sourceLanguage: "en",
+        });
+
+        translations = {
+          [passengerLanguage]: translation.translatedText || trimmedMessage,
+        };
+      }
+
+      await sendDriverMessage({
+        key: "driver_custom",
+        english: trimmedMessage,
+        translations,
+      });
+
+      setCustomDriverMessage("");
+    } catch (error) {
+      console.error("Failed to translate typed message:", error);
+
+      await sendDriverMessage({
+        key: "driver_custom",
+        english: trimmedMessage,
+        translations: {},
+      });
+
+      setDriverMessageStatus(
+        "Translation failed; sent the original typed message instead."
+      );
+    } finally {
+      setCustomMessageTranslating(false);
+    }
   }
 
   // ===== REQUEST ACTIONS =====
@@ -728,12 +889,12 @@ export default function DriverConsolePage() {
         <div>
           <h2 className="text-xl font-black">Driver Messages</h2>
           <p className="text-sm text-white/50">
-            Send a popup to the passenger tablet. Preset messages are translated; custom messages are sent as typed.
+            Send a popup to the passenger tablet. Presets use manual translations; typed messages use MyMemory when possible.
           </p>
         </div>
 
         <div className="mt-4 grid gap-2">
-          {DRIVER_MESSAGE_TEMPLATES.map((template) => (
+          {ALL_DRIVER_MESSAGE_TEMPLATES.map((template) => (
             <button
               key={template.key}
               type="button"
@@ -761,14 +922,15 @@ export default function DriverConsolePage() {
           <button
             type="button"
             onClick={sendCustomDriverMessage}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-300 px-4 py-3 text-sm font-black text-cyan-950"
+            disabled={customMessageTranslating}
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-300 px-4 py-3 text-sm font-black text-cyan-950 disabled:opacity-60"
           >
             <Send size={16} />
-            Send Typed Message
+            {customMessageTranslating ? "Translating..." : "Send Typed Message"}
           </button>
 
           <div className="mt-2 text-xs font-bold text-white/40">
-            Typed messages are not machine-translated yet. The passenger receives the exact text you send.
+            Typed messages are translated through the backend MyMemory scaffold when the passenger language is not English. If translation fails, the original message is sent.
           </div>
         </div>
 
