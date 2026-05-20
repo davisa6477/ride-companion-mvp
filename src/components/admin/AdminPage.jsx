@@ -15,6 +15,7 @@ import {
   getInstalledGameRegistry,
 } from "../../config/gameRegistry.jsx";
 import { normalizeGameModuleSettings } from "../../services/gameModuleSettingsService.js";
+import { translateDriverMessage } from "../../services/dynamicTranslationApiService.js";
 import {
   approvePairingCode,
   clearAllPairingCodes,
@@ -101,6 +102,20 @@ function buildTipOption(type, identifier, customPlatform, customUrl) {
   };
 }
 
+
+const ADMIN_DYNAMIC_TRANSLATION_LANGUAGES = [
+  { code: "es", label: "Spanish" },
+  { code: "fr", label: "French" },
+  { code: "de", label: "German" },
+  { code: "pt", label: "Portuguese" },
+  { code: "zh", label: "Chinese" },
+  { code: "ar", label: "Arabic" },
+  { code: "vi", label: "Vietnamese" },
+  { code: "ko", label: "Korean" },
+  { code: "ja", label: "Japanese" },
+  { code: "hi", label: "Hindi" },
+];
+
 export default function AdminPage({
   entries,
   setEntries,
@@ -168,6 +183,9 @@ export default function AdminPage({
     description: "",
     category: "Local",
   });
+  const [adTranslationLanguage, setAdTranslationLanguage] = useState("es");
+  const [adTranslationMessage, setAdTranslationMessage] = useState("");
+  const [translatingAdId, setTranslatingAdId] = useState("");
 
   // ===== TIP OPTION STATE =====
   const [paymentType, setPaymentType] = useState("cashapp");
@@ -191,6 +209,8 @@ export default function AdminPage({
   const [driverProfileDraft, setDriverProfileDraft] = useState(driverProfile);
   const [driverProfileDirty, setDriverProfileDirty] = useState(false);
   const [driverProfileMessage, setDriverProfileMessage] = useState("");
+  const [profileTranslationLanguage, setProfileTranslationLanguage] = useState("es");
+  const [profileTranslating, setProfileTranslating] = useState(false);
 
   // ===== DRIVER PROFILE HELPERS =====
   useEffect(() => {
@@ -241,6 +261,66 @@ export default function AdminPage({
     setDriverProfileDraft(driverProfile);
     setDriverProfileDirty(false);
     setDriverProfileMessage("Driver profile changes discarded.");
+  }
+
+  async function translateTextToLanguage(text, targetLanguage) {
+    const trimmedText = String(text || "").trim();
+
+    if (!trimmedText || !targetLanguage) return "";
+
+    const translation = await translateDriverMessage({
+      text: trimmedText,
+      sourceLanguage: "en",
+      targetLanguage,
+    });
+
+    return translation?.translatedText || "";
+  }
+
+  async function translateDriverProfileDraft(targetLanguage = profileTranslationLanguage) {
+    setDriverProfileMessage("");
+
+    if (!targetLanguage) {
+      setDriverProfileMessage("Choose a language first.");
+      return;
+    }
+
+    setProfileTranslating(true);
+
+    try {
+      const [translatedBio, translatedLocalTip] = await Promise.all([
+        translateTextToLanguage(driverProfileDraft.bio, targetLanguage),
+        translateTextToLanguage(driverProfileDraft.localTip, targetLanguage),
+      ]);
+
+      setDriverProfileDraft((currentProfile) => ({
+        ...currentProfile,
+        bioTranslations: translatedBio
+          ? {
+              ...(currentProfile.bioTranslations || {}),
+              [targetLanguage]: translatedBio,
+            }
+          : currentProfile.bioTranslations || {},
+        localTipTranslations: translatedLocalTip
+          ? {
+              ...(currentProfile.localTipTranslations || {}),
+              [targetLanguage]: translatedLocalTip,
+            }
+          : currentProfile.localTipTranslations || {},
+      }));
+
+      setDriverProfileDirty(true);
+      setDriverProfileMessage(
+        `Generated ${targetLanguage.toUpperCase()} profile translations. Press Save Driver Profile to publish.`
+      );
+    } catch (error) {
+      console.error("Failed to translate driver profile:", error);
+      setDriverProfileMessage(
+        "Could not generate profile translations. Check /api/translate."
+      );
+    } finally {
+      setProfileTranslating(false);
+    }
   }
 
   // ===== APP SETTINGS HELPERS =====
@@ -747,6 +827,80 @@ export default function AdminPage({
     });
   }
 
+  async function translateAdFields(ad, targetLanguage = adTranslationLanguage) {
+    const translatedFields = {};
+
+    for (const field of ["businessName", "headline", "description", "category"]) {
+      const translatedValue = await translateTextToLanguage(ad[field], targetLanguage);
+
+      if (translatedValue) {
+        translatedFields[`${field}Translations`] = {
+          ...(ad[`${field}Translations`] || {}),
+          [targetLanguage]: translatedValue,
+        };
+      }
+    }
+
+    return {
+      ...ad,
+      ...translatedFields,
+    };
+  }
+
+  async function translateNewAd(targetLanguage = adTranslationLanguage) {
+    setAdTranslationMessage("");
+
+    if (!newAd.businessName.trim() && !newAd.headline.trim()) {
+      setAdTranslationMessage("Add ad text before translating.");
+      return;
+    }
+
+    setTranslatingAdId("new");
+
+    try {
+      const translatedAd = await translateAdFields(newAd, targetLanguage);
+
+      setNewAd(translatedAd);
+      setAdTranslationMessage(
+        `Generated ${targetLanguage.toUpperCase()} translations for the draft ad.`
+      );
+    } catch (error) {
+      console.error("Failed to translate draft ad:", error);
+      setAdTranslationMessage("Could not translate draft ad. Check /api/translate.");
+    } finally {
+      setTranslatingAdId("");
+    }
+  }
+
+  async function translateExistingAd(adId, targetLanguage = adTranslationLanguage) {
+    setAdTranslationMessage("");
+    setTranslatingAdId(adId);
+
+    try {
+      const targetAd = ads.find((ad) => ad.id === adId);
+
+      if (!targetAd) {
+        setAdTranslationMessage("Ad not found.");
+        return;
+      }
+
+      const translatedAd = await translateAdFields(targetAd, targetLanguage);
+
+      setAds((currentAds) =>
+        currentAds.map((ad) => (ad.id === adId ? translatedAd : ad))
+      );
+
+      setAdTranslationMessage(
+        `Generated ${targetLanguage.toUpperCase()} translations for ${targetAd.businessName || "ad"}.`
+      );
+    } catch (error) {
+      console.error("Failed to translate ad:", error);
+      setAdTranslationMessage("Could not translate ad. Check /api/translate.");
+    } finally {
+      setTranslatingAdId("");
+    }
+  }
+
   function toggleAd(id) {
     setAds(
       ads.map((ad) =>
@@ -1249,6 +1403,40 @@ export default function AdminPage({
 
         <div className="mt-4 rounded-2xl bg-slate-100 p-3 text-sm font-bold text-slate-600">
           Profile edits are staged locally while you type. Press Save Driver Profile to publish them to the passenger tablet.
+        </div>
+
+        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+          <div className="text-sm font-black text-slate-800">
+            Dynamic profile translation
+          </div>
+          <p className="mt-1 text-xs font-bold text-slate-500">
+            Uses the backend /api/translate MyMemory scaffold. Generated text is staged until you press Save Driver Profile.
+          </p>
+
+          <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
+            <select
+              value={profileTranslationLanguage}
+              onChange={(event) =>
+                setProfileTranslationLanguage(event.target.value)
+              }
+              className="rounded-2xl border border-slate-200 bg-white p-3 text-sm font-bold outline-none"
+            >
+              {ADMIN_DYNAMIC_TRANSLATION_LANGUAGES.map((language) => (
+                <option key={language.code} value={language.code}>
+                  {language.label}
+                </option>
+              ))}
+            </select>
+
+            <button
+              type="button"
+              onClick={() => translateDriverProfileDraft()}
+              disabled={profileTranslating}
+              className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white disabled:opacity-50"
+            >
+              {profileTranslating ? "Translating..." : "Translate Profile"}
+            </button>
+          </div>
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -2036,6 +2224,44 @@ export default function AdminPage({
           Add Local Ad
         </h2>
 
+        <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+          <div className="text-sm font-black text-slate-800">
+            Dynamic ad translation
+          </div>
+          <p className="mt-1 text-xs font-bold text-slate-500">
+            Generate manual translation fields for Deals/Home fallback display. Existing English text remains the fallback.
+          </p>
+
+          <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
+            <select
+              value={adTranslationLanguage}
+              onChange={(event) => setAdTranslationLanguage(event.target.value)}
+              className="rounded-2xl border border-slate-200 bg-white p-3 text-sm font-bold outline-none"
+            >
+              {ADMIN_DYNAMIC_TRANSLATION_LANGUAGES.map((language) => (
+                <option key={language.code} value={language.code}>
+                  {language.label}
+                </option>
+              ))}
+            </select>
+
+            <button
+              type="button"
+              onClick={() => translateNewAd()}
+              disabled={translatingAdId === "new"}
+              className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white disabled:opacity-50"
+            >
+              {translatingAdId === "new" ? "Translating..." : "Translate Draft"}
+            </button>
+          </div>
+
+          {adTranslationMessage && (
+            <div className="mt-3 rounded-xl bg-white p-3 text-sm font-bold text-slate-600">
+              {adTranslationMessage}
+            </div>
+          )}
+        </div>
+
         <form onSubmit={addAd} className="mt-4 grid gap-3">
           <input
             value={newAd.businessName}
@@ -2074,6 +2300,14 @@ export default function AdminPage({
             className="rounded-2xl border border-slate-200 p-3 outline-none"
           />
 
+          {(newAd.headlineTranslations?.[adTranslationLanguage] ||
+            newAd.descriptionTranslations?.[adTranslationLanguage] ||
+            newAd.businessNameTranslations?.[adTranslationLanguage]) && (
+            <div className="rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">
+              Draft includes {adTranslationLanguage.toUpperCase()} translations.
+            </div>
+          )}
+
           <button className="flex items-center justify-center gap-2 rounded-2xl bg-slate-950 p-3 font-black text-white">
             <Plus size={18} />
             Add Ad
@@ -2098,6 +2332,25 @@ export default function AdminPage({
                 <div className="text-sm text-slate-500">
                   {ad.active ? "Active" : "Inactive"}
                 </div>
+
+                {(ad.headlineTranslations?.[adTranslationLanguage] ||
+                  ad.descriptionTranslations?.[adTranslationLanguage] ||
+                  ad.businessNameTranslations?.[adTranslationLanguage]) && (
+                  <div className="mt-1 text-xs font-bold text-emerald-700">
+                    {adTranslationLanguage.toUpperCase()} translation ready
+                  </div>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => translateExistingAd(ad.id)}
+                disabled={translatingAdId === ad.id}
+                className="rounded-xl bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-200 disabled:opacity-50"
+              >
+                {translatingAdId === ad.id
+                  ? "..."
+                  : `Translate ${adTranslationLanguage.toUpperCase()}`}
               </button>
 
               <button
